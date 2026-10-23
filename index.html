@@ -1,0 +1,262 @@
+<title>Landingzone.in</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Landingzone.in — independent Azure architecture consulting: landing zones, migration assessments, Terraform and presales support.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;700&family=Public+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: survey-map sheet — contour hero with a landing pad, then offers laid out like plots on a site plan */
+:root{
+  --paper:#eef2ec; --sheet:#fbfcfa; --ink:#17251e; --muted:#566a5f; --line:#cfd9d1;
+  --accent:#1d6a49; --mark:#b07a1e; --contour:rgba(29,106,73,.16);
+  --display:"Familjen Grotesk",ui-sans-serif,system-ui,sans-serif;
+  --body:"Public Sans",ui-sans-serif,system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#101914; --sheet:#16221c; --ink:#e4ece6; --muted:#98ab9f; --line:#27372e;
+  --accent:#5cc493; --mark:#e0a94a; --contour:rgba(92,196,147,.14); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#101914; --sheet:#16221c; --ink:#e4ece6; --muted:#98ab9f; --line:#27372e;
+  --accent:#5cc493; --mark:#e0a94a; --contour:rgba(92,196,147,.14); color-scheme:dark}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--paper);color:var(--ink);font:400 1.0625rem/1.65 var(--body)}
+a{color:var(--accent);text-underline-offset:3px}
+a:focus-visible,button:focus-visible{outline:2px solid var(--mark);outline-offset:3px;border-radius:2px}
+.wrap{max-width:1080px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:color-mix(in srgb,var(--paper) 90%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--paper)}
+header.top .wrap{display:flex;justify-content:space-between;align-items:center;gap:16px;padding-block:12px}
+.logo{display:flex;align-items:center;gap:10px;font:700 1.1rem var(--display);color:var(--ink);text-decoration:none;letter-spacing:-.01em}
+.logo small{font:500 .8rem var(--mono);color:var(--muted)}
+header.top nav{display:flex;gap:20px;font-size:.95rem;flex-wrap:wrap;align-items:center}
+header.top nav a{color:var(--muted);text-decoration:none}
+header.top nav a.cta{color:var(--sheet);background:var(--accent);padding:7px 14px;border-radius:3px}
+@media (max-width:680px){header.top nav a:not(.cta){display:none}}
+
+.hero{position:relative;overflow:hidden;border-bottom:1px solid var(--line)}
+.hero svg.contours{position:absolute;right:-120px;top:-40px;width:720px;height:auto;max-width:none;pointer-events:none}
+.hero .wrap{position:relative;padding-block:80px 72px}
+.coord{font:500 .78rem var(--mono);color:var(--mark);letter-spacing:.06em}
+h1{font:700 clamp(2.5rem,6.4vw,4.6rem)/1.0 var(--display);letter-spacing:-.03em;margin:16px 0 20px;max-width:15ch;text-wrap:balance}
+h1 em{font-style:normal;color:var(--accent)}
+.lede{max-width:54ch;color:var(--muted);font-size:1.15rem;margin:0 0 30px}
+.ctas{display:flex;flex-wrap:wrap;gap:12px}
+.btn{display:inline-flex;align-items:center;padding:12px 20px;border-radius:3px;font:600 1rem var(--body);text-decoration:none;border:1px solid var(--accent);transition:transform .15s}
+.btn.primary{background:var(--accent);color:var(--sheet)}
+.btn.ghost{color:var(--accent)}
+.btn:hover{transform:translateY(-1px)}
+.proof{display:flex;flex-wrap:wrap;gap:10px 26px;margin-top:40px;font:500 .82rem var(--mono);color:var(--muted)}
+.proof span::before{content:"▲ ";color:var(--mark)}
+@media (prefers-reduced-motion:reduce){.btn{transition:none}html{scroll-behavior:auto}}
+
+section{border-bottom:1px solid var(--line)}
+section .wrap{padding-block:64px}
+.eyebrow{font:500 .78rem var(--mono);color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px}
+h2{font:700 clamp(1.7rem,3.6vw,2.4rem)/1.1 var(--display);letter-spacing:-.02em;margin:0 0 14px;text-wrap:balance}
+.intro{max-width:62ch;color:var(--muted);margin:0 0 34px}
+
+.offers{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:18px}
+.offer{background:var(--sheet);border:1px solid var(--line);border-radius:4px;padding:24px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.offer .plot{font:500 .75rem var(--mono);color:var(--mark)}
+.offer h3{font:700 1.3rem/1.2 var(--display);margin:0}
+.offer p{margin:0;color:var(--muted)}
+.offer ul{margin:4px 0 0;padding-left:18px;font-size:.96rem}
+.offer ul li{margin-bottom:4px}
+.meta{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:auto;padding-top:14px;border-top:1px dashed var(--line);font:500 .82rem var(--mono);color:var(--muted)}
+.meta b{color:var(--ink);font-weight:500}
+
+.models{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.model{background:var(--sheet);padding:22px;min-width:0}
+.model h3{font:700 1.1rem var(--display);margin:0 0 6px}
+.model p{margin:0;color:var(--muted);font-size:.97rem}
+
+.steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:24px;counter-reset:s}
+.steps li{counter-increment:s;min-width:0}
+.steps li::before{content:counter(s,decimal-leading-zero);display:block;font:700 2rem/1 var(--display);color:var(--accent);margin-bottom:10px}
+.steps h3{font:700 1.1rem var(--display);margin:0 0 4px}
+.steps p{margin:0;color:var(--muted);font-size:.97rem}
+
+.cases{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:18px}
+.case{border-left:3px solid var(--mark);padding:4px 0 4px 18px;min-width:0}
+.case .sector{font:500 .78rem var(--mono);color:var(--muted)}
+.case p{margin:6px 0 0}
+.flag{font-size:.88rem;color:var(--muted);margin-top:18px}
+
+.faq{max-width:760px}
+details{border-top:1px solid var(--line);padding:16px 0}
+details:last-child{border-bottom:1px solid var(--line)}
+summary{font:600 1.05rem var(--body);cursor:pointer;list-style:none;display:flex;justify-content:space-between;gap:16px}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";font:500 1.2rem var(--mono);color:var(--accent)}
+details[open] summary::after{content:"−"}
+details p{margin:10px 0 0;color:var(--muted);max-width:65ch}
+
+.contact{background:var(--sheet)}
+.contact .wrap{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:start}
+.rows{display:grid;gap:12px}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:14px 16px;border:1px solid var(--line);border-radius:4px;background:var(--paper)}
+.row .k{font:500 .75rem var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.08em;width:84px}
+.row .v{flex:1;min-width:0;word-break:break-all;user-select:all}
+.copy{font:500 .8rem var(--mono);background:none;border:1px solid var(--line);color:var(--ink);padding:5px 10px;border-radius:3px;cursor:pointer}
+.copy:hover{border-color:var(--accent);color:var(--accent)}
+@media (max-width:760px){.contact .wrap{grid-template-columns:1fr;gap:24px}}
+
+footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;padding-block:24px;font:400 .8rem var(--mono);color:var(--muted)}
+</style>
+
+<header class="top">
+  <div class="wrap">
+    <a class="logo" href="#top">
+      <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><circle cx="13" cy="13" r="12" fill="none" stroke="var(--accent)" stroke-width="2"/><path d="M8 7v12M18 7v12M8 13h10" stroke="var(--accent)" stroke-width="2.4" fill="none"/></svg>
+      Landingzone<small>.in</small>
+    </a>
+    <nav>
+      <a href="#services">Services</a>
+      <a href="#how">How it works</a>
+      <a href="#faq">FAQ</a>
+      <a class="cta" href="#contact">Book a call</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero" id="top">
+  <svg class="contours" viewBox="0 0 720 560" aria-hidden="true">
+    <g fill="none" stroke="var(--contour)" stroke-width="1.5">
+      <ellipse cx="420" cy="280" rx="60" ry="42"/><ellipse cx="420" cy="280" rx="110" ry="78"/>
+      <ellipse cx="415" cy="282" rx="165" ry="118"/><ellipse cx="408" cy="286" rx="225" ry="160"/>
+      <ellipse cx="400" cy="290" rx="290" ry="205"/><ellipse cx="392" cy="294" rx="360" ry="252"/>
+    </g>
+    <circle cx="420" cy="280" r="30" fill="none" stroke="var(--mark)" stroke-width="2"/>
+    <path d="M410 266v28M430 266v28M410 280h20" stroke="var(--mark)" stroke-width="3" fill="none"/>
+  </svg>
+  <div class="wrap">
+    <div class="coord">AZURE ARCHITECTURE · INDEPENDENT CONSULTING</div>
+    <h1>A solid place for your workloads to <em>land</em>.</h1>
+    <p class="lede">Expert Azure landing zones, migration plans and Terraform builds, delivered as fixed-scope engagements. Senior architect time, without hiring a full-time architect.</p>
+    <div class="ctas">
+      <a class="btn primary" href="#contact">Book a free 30-minute call</a>
+      <a class="btn ghost" href="#services">See services</a>
+    </div>
+    <div class="proof">
+      <span>17 years in cloud &amp; infrastructure</span>
+      <span>AZ-305 · AZ-700 · AZ-104 · AI-102</span>
+      <span>Enterprise presales experience</span>
+    </div>
+  </div>
+</section>
+
+<section id="services">
+  <div class="wrap">
+    <div class="eyebrow">Services</div>
+    <h2>Fixed-scope engagements</h2>
+    <p class="intro">Each engagement has a clear deliverable, timeline and price agreed upfront, so you know exactly what you're getting.</p>
+    <div class="offers">
+      <article class="offer">
+        <div class="plot">plot / review</div>
+        <h3>Landing Zone Health Check</h3>
+        <p>An independent review of your existing Azure foundation against the Cloud Adoption Framework.</p>
+        <ul><li>Management groups, policy and RBAC</li><li>Network topology and security</li><li>Prioritised findings report</li></ul>
+        <div class="meta"><span><b>1–2 weeks</b></span><span>Fixed fee</span></div>
+      </article>
+      <article class="offer">
+        <div class="plot">plot / plan</div>
+        <h3>Migration Assessment</h3>
+        <p>Know what to move, in what order, and what it will cost on Azure before you commit.</p>
+        <ul><li>Workload discovery and dependencies</li><li>Wave plan and target architecture</li><li>Cost estimate and risk register</li></ul>
+        <div class="meta"><span><b>2–4 weeks</b></span><span>Fixed fee</span></div>
+      </article>
+      <article class="offer">
+        <div class="plot">plot / build</div>
+        <h3>Terraform Landing Zone</h3>
+        <p>A production-ready Azure foundation, delivered as code your team owns.</p>
+        <ul><li>Hub-spoke or Virtual WAN networking</li><li>Policy, identity and logging baseline</li><li>Handover session and documentation</li></ul>
+        <div class="meta"><span><b>3–6 weeks</b></span><span>Fixed fee</span></div>
+      </article>
+      <article class="offer">
+        <div class="plot">plot / bid</div>
+        <h3>Presales Support for Partners</h3>
+        <p>Extra architect capacity for Microsoft partners and IT firms during busy bid periods.</p>
+        <ul><li>RFP responses and solution designs</li><li>Sizing, BOMs and cost models</li><li>Customer workshop support</li></ul>
+        <div class="meta"><span><b>Per bid</b></span><span>Hourly or per bid</span></div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section id="models">
+  <div class="wrap">
+    <div class="eyebrow">Ways to work together</div>
+    <h2>Pick the model that fits</h2>
+    <p class="intro">Available on a part-time basis, mainly evenings and weekends IST, with overlap for India, Middle East and European time zones.</p>
+    <div class="models">
+      <div class="model"><h3>Fixed scope</h3><p>A defined deliverable at an agreed price. Best for reviews, assessments and builds.</p></div>
+      <div class="model"><h3>Hourly</h3><p>Ad-hoc architecture advice, design reviews or troubleshooting, billed by the hour.</p></div>
+      <div class="model"><h3>Monthly retainer</h3><p>A set number of hours each month as your on-call Azure architect.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="wrap">
+    <div class="eyebrow">How it works</div>
+    <h2>From first call to handover</h2>
+    <ol class="steps">
+      <li><h3>Discovery call</h3><p>A free 30-minute call to understand your environment and goals.</p></li>
+      <li><h3>Proposal</h3><p>A short written scope with deliverables, timeline and fixed price within 2 working days.</p></li>
+      <li><h3>Delivery</h3><p>Work in agreed milestones, with a weekly update so nothing is a surprise.</p></li>
+      <li><h3>Handover</h3><p>Documentation, code and a walkthrough so your team can run it independently.</p></li>
+    </ol>
+  </div>
+</section>
+
+<section id="work">
+  <div class="wrap">
+    <div class="eyebrow">Selected work</div>
+    <h2>The kind of problems I solve</h2>
+    <div class="cases">
+      <div class="case"><div class="sector">[Sector] · [Region]</div><p>[Designed a hub-spoke network and policy baseline for 40+ subscriptions.]</p></div>
+      <div class="case"><div class="sector">[Sector] · [Region]</div><p>[Planned the migration of 200 VMs to Azure across five waves.]</p></div>
+      <div class="case"><div class="sector">[Sector] · [Region]</div><p>[Replaced manual portal builds with reusable Terraform modules.]</p></div>
+    </div>
+    <p class="flag">Examples to replace with your own anonymised work. No client or employer names.</p>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="wrap faq">
+    <div class="eyebrow">FAQ</div>
+    <h2>Common questions</h2>
+    <details><summary>Do you work with small companies?</summary><p>Yes. Startups and mid-sized firms often benefit most, because getting the foundation right early saves expensive rework later.</p></details>
+    <details><summary>Can you work alongside our existing IT team?</summary><p>Yes. Most engagements are done with your team so they understand and can maintain everything after handover.</p></details>
+    <details><summary>Do you need admin access to our Azure environment?</summary><p>For reviews, read-only access is usually enough. Build work uses access you control and can remove at any time.</p></details>
+    <details><summary>How do you handle confidentiality?</summary><p>An NDA is signed before any environment details are shared, and client names are never published.</p></details>
+  </div>
+</section>
+
+<section class="contact" id="contact">
+  <div class="wrap">
+    <div>
+      <div class="eyebrow">Contact</div>
+      <h2>Let's plan your landing</h2>
+      <p class="intro" style="margin-bottom:0">Tell me briefly about your Azure environment and what you want to achieve. I reply within one working day.</p>
+    </div>
+    <div class="rows">
+      <div class="row"><span class="k">Book</span><a class="v" href="https://calendly.com/YOUR-LINK" target="_blank" rel="noopener">calendly.com/YOUR-LINK</a></div>
+      <div class="row"><span class="k">Email</span><span class="v" id="email">hello@landingzone.in</span><button class="copy" id="copyEmail" type="button">Copy</button></div>
+      <div class="row"><span class="k">WhatsApp</span><span class="v">[Business number]</span></div>
+    </div>
+  </div>
+</section>
+
+<footer><div class="wrap"><span>© 2026 Landingzone.in</span><span>Azure architecture consulting · India</span></div></footer>
+
+<script>
+document.getElementById('copyEmail').addEventListener('click',function(){
+  var b=this,el=document.getElementById('email');
+  function sel(){var r=document.createRange();r.selectNodeContents(el);var s=getSelection();s.removeAllRanges();s.addRange(r);b.textContent='Selected'}
+  try{navigator.clipboard.writeText(el.textContent).then(function(){b.textContent='Copied';setTimeout(function(){b.textContent='Copy'},1500)},sel)}catch(e){sel()}
+});
+</script>
