@@ -99,6 +99,18 @@ h2{font:700 clamp(1.7rem,3.6vw,2.4rem)/1.1 var(--display);letter-spacing:-.02em;
 .case p{margin:6px 0 0}
 .flag{font-size:.88rem;color:var(--muted);margin-top:18px}
 
+.engs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,440px),1fr));gap:18px}
+.eng{background:var(--sheet);border:1px solid var(--line);border-radius:4px;padding:24px;display:flex;flex-direction:column;gap:18px;min-width:0}
+.eng .plot{font:500 .75rem var(--mono);color:var(--mark)}
+.eng h3{font:700 1.3rem/1.2 var(--display);margin:6px 0 6px}
+.eng-head p{margin:0;color:var(--muted)}
+.phases{list-style:none;margin:0;padding:0;counter-reset:p;display:grid;gap:10px}
+.phases li{counter-increment:p;display:grid;grid-template-columns:28px 1fr;column-gap:10px;align-items:baseline}
+.phases li::before{content:counter(p);grid-row:span 2;width:24px;height:24px;border-radius:50%;border:1.5px solid var(--accent);color:var(--accent);font:600 .78rem/21px var(--mono);text-align:center}
+.phases b{font-weight:600}
+.phases span{color:var(--muted);font-size:.95rem}
+.gets{display:flex;flex-wrap:wrap;gap:8px;margin-top:auto;padding-top:14px;border-top:1px dashed var(--line)}
+.gets span{font:500 .78rem var(--mono);color:var(--ink);background:var(--paper);border:1px solid var(--line);padding:4px 9px;border-radius:3px}
 .faq{max-width:760px}
 details{border-top:1px solid var(--line);padding:16px 0}
 details:last-child{border-bottom:1px solid var(--line)}
@@ -132,6 +144,7 @@ footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;
     <nav>
       <a href="#services">Services</a>
       <a href="#how">How it works</a>
+      <a href="#work">Examples</a>
       <a href="#faq">FAQ</a>
       <a class="cta" href="#contact">Book a call</a>
     </nav>
@@ -230,14 +243,52 @@ footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;
 
 <section id="work">
   <div class="wrap">
-    <div class="eyebrow">Selected work</div>
-    <h2>The kind of problems I solve</h2>
-    <div class="cases">
-      <div class="case"><div class="sector">[Sector] · [Region]</div><p>[Designed a hub-spoke network and policy baseline for 40+ subscriptions.]</p></div>
-      <div class="case"><div class="sector">[Sector] · [Region]</div><p>[Planned the migration of 200 VMs to Azure across five waves.]</p></div>
-      <div class="case"><div class="sector">[Sector] · [Region]</div><p>[Replaced manual portal builds with reusable Terraform modules.]</p></div>
+    <div class="eyebrow">Sample engagements</div>
+    <h2>How a typical engagement runs</h2>
+    <p class="intro">Illustrative examples of the method behind each service. Every engagement is scoped to your environment; client details are never published.</p>
+    <div class="engs">
+      <article class="eng">
+        <div class="eng-head"><span class="plot">sample / caf adoption</span><h3>Cloud Adoption Framework rollout</h3><p>A mid-sized company starting its Azure journey wants a structured, governed path instead of ad-hoc subscriptions.</p></div>
+        <ol class="phases">
+          <li><b>Strategy</b><span>Business drivers, expected outcomes and first workloads</span></li>
+          <li><b>Plan</b><span>Digital estate review, skills gaps and adoption plan</span></li>
+          <li><b>Ready</b><span>Landing zone design: management groups, identity, network</span></li>
+          <li><b>Adopt</b><span>Migrate or build the first workloads on the new foundation</span></li>
+          <li><b>Govern &amp; Manage</b><span>Policy, cost controls, monitoring and operations baseline</span></li>
+        </ol>
+        <div class="gets"><span>Adoption roadmap</span><span>Landing zone design</span><span>Governance baseline</span></div>
+      </article>
+      <article class="eng">
+        <div class="eng-head"><span class="plot">sample / assessment</span><h3>Migration assessment</h3><p>An organisation with on-premises servers needs to know what can move, what it will cost and where the risks are.</p></div>
+        <ol class="phases">
+          <li><b>Discover</b><span>Inventory servers, databases and apps with Azure Migrate</span></li>
+          <li><b>Map dependencies</b><span>Find which systems talk to each other and must move together</span></li>
+          <li><b>Right-size &amp; cost</b><span>Match workloads to Azure sizes and build a TCO comparison</span></li>
+          <li><b>Decide per workload</b><span>Rehost, replatform, refactor, replace or retire</span></li>
+        </ol>
+        <div class="gets"><span>Readiness report</span><span>Cost estimate</span><span>Risk register</span></div>
+      </article>
+      <article class="eng">
+        <div class="eng-head"><span class="plot">sample / planning</span><h3>Migration wave planning</h3><p>Assessment is done; the team needs a safe, sequenced plan to move workloads with minimal downtime.</p></div>
+        <ol class="phases">
+          <li><b>Group into waves</b><span>By dependency, business criticality and complexity</span></li>
+          <li><b>Pilot wave</b><span>Low-risk workloads first to prove the process</span></li>
+          <li><b>Runbooks</b><span>Cutover steps, testing, sign-off and rollback for each wave</span></li>
+          <li><b>Schedule</b><span>Align downtime windows with business calendars</span></li>
+        </ol>
+        <div class="gets"><span>Wave plan</span><span>Cutover runbooks</span><span>Timeline</span></div>
+      </article>
+      <article class="eng">
+        <div class="eng-head"><span class="plot">sample / build</span><h3>Landing zone as code</h3><p>A team builds resources by hand in the portal and wants a repeatable, governed foundation.</p></div>
+        <ol class="phases">
+          <li><b>Design</b><span>Management groups, subscriptions, naming and tagging</span></li>
+          <li><b>Network</b><span>Hub-spoke with firewall and hybrid connectivity</span></li>
+          <li><b>Guardrails</b><span>Azure Policy, RBAC, logging and Defender baseline</span></li>
+          <li><b>Automate</b><span>Terraform modules deployed through a CI/CD pipeline</span></li>
+        </ol>
+        <div class="gets"><span>Terraform code</span><span>Pipeline</span><span>Handover docs</span></div>
+      </article>
     </div>
-    <p class="flag">Examples to replace with your own anonymised work. No client or employer names.</p>
   </div>
 </section>
 
