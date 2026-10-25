@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="canonical" href="https://landingzone.in/inventory.html">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://landingzone.in/inventory.html">
+<meta property="og:title" content="Azure Inventory Report – Landingzone.in">
+<meta property="og:description" content="Free tool: run three read-only Resource Graph queries and get an Azure inventory overview, storage account security checks and unused resources.">
+<meta property="og:image" content="https://landingzone.in/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<title>Azure Inventory Report</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Free Azure inventory and health report: run three Resource Graph queries, upload the results and get an overview, storage account security checks and a list of wasted resources.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;700&family=Public+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: run queries → upload → report; report leads with severity counts, then charts, then detail tables */
+:root{
+  --paper:#eef2ec; --sheet:#fbfcfa; --ink:#17251e; --muted:#566a5f; --line:#cfd9d1;
+  --accent:#1d6a49; --mark:#8a5d10; --chip:#e3ebe5; --bar:#1d6a49; --track:#e3ebe5;
+  --high:#b3261e; --med:#8a5d10; --low:#1d5f8a; --ok:#1d6a49;
+  --display:"Familjen Grotesk",ui-sans-serif,system-ui,sans-serif;
+  --body:"Public Sans",ui-sans-serif,system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#101914; --sheet:#16221c; --ink:#e4ece6; --muted:#98ab9f; --line:#27372e;
+  --accent:#5cc493; --mark:#e0a94a; --chip:#1f2e26; --bar:#5cc493; --track:#1f2e26;
+  --high:#f2877e; --med:#e0a94a; --low:#7cbbe6; --ok:#5cc493; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#101914; --sheet:#16221c; --ink:#e4ece6; --muted:#98ab9f; --line:#27372e;
+  --accent:#5cc493; --mark:#e0a94a; --chip:#1f2e26; --bar:#5cc493; --track:#1f2e26;
+  --high:#f2877e; --med:#e0a94a; --low:#7cbbe6; --ok:#5cc493; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font:400 1rem/1.6 var(--body)}
+a{color:var(--accent);text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--mark);outline-offset:2px;border-radius:2px}
+.wrap{max-width:1240px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.top{border-bottom:1px solid var(--line)}
+header.top .wrap{display:flex;justify-content:space-between;align-items:center;gap:16px;padding-block:12px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:10px;font:700 1.1rem var(--display);color:var(--ink);text-decoration:none}
+.logo small{font:500 .8rem var(--mono);color:var(--muted)}
+.navr{display:flex;gap:16px;align-items:center;flex-wrap:wrap;font-size:.95rem}
+.cta{color:var(--sheet);background:var(--accent);padding:8px 14px;border-radius:3px;text-decoration:none;font-weight:600}
+.intro .wrap{padding-block:40px 20px}
+.eyebrow{font:500 .78rem var(--mono);color:var(--mark);letter-spacing:.08em;text-transform:uppercase}
+h1{font:700 clamp(2rem,4.6vw,3.1rem)/1.05 var(--display);letter-spacing:-.025em;margin:10px 0 12px;max-width:22ch;text-wrap:balance}
+.lede{color:var(--muted);max-width:68ch;margin:0}
+.badges{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:16px;font:500 .8rem var(--mono);color:var(--muted)}
+.badges span::before{content:"✓ ";color:var(--accent)}
+
+main .wrap{display:grid;grid-template-columns:minmax(0,1fr);gap:20px;padding-block:8px 56px}
+.card{background:var(--sheet);border:1px solid var(--line);border-radius:6px;min-width:0}
+.card>h2{font:700 1.2rem var(--display);margin:0;padding:16px 18px;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:baseline;flex-wrap:wrap}
+.card>h2 .step{font:500 .8rem var(--mono);color:var(--mark)}
+.card>h2 small{font:400 .9rem var(--body);color:var(--muted)}
+.body{padding:18px;display:grid;grid-template-columns:minmax(0,1fr);gap:14px;min-width:0}
+h3{font:700 1.05rem var(--display);margin:6px 0 0}
+.hint{font-size:.88rem;color:var(--muted);margin:0;max-width:85ch}
+
+.queries{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:14px}
+.q{border:1px solid var(--line);border-radius:4px;padding:14px;display:grid;gap:8px;min-width:0;background:var(--paper)}
+.q h3{margin:0;display:flex;gap:8px;align-items:baseline}
+.q h3 span{font:500 .75rem var(--mono);color:var(--mark)}
+.q p{margin:0;font-size:.86rem;color:var(--muted)}
+pre{margin:0;padding:12px;background:var(--sheet);border:1px solid var(--line);border-radius:4px;font:400 .76rem/1.5 var(--mono);overflow:auto;white-space:pre;max-height:220px}
+.btn{font:600 .88rem var(--body);padding:8px 13px;border-radius:3px;border:1px solid var(--accent);background:var(--accent);color:var(--sheet);cursor:pointer;text-decoration:none;display:inline-block}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn.quiet{background:transparent;color:var(--muted);border-color:var(--line)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+details{font-size:.88rem}
+summary{cursor:pointer;color:var(--accent);font-weight:600}
+
+.drop{border:2px dashed var(--line);border-radius:6px;padding:22px;text-align:center;display:grid;gap:10px;justify-items:center}
+.drop.over{border-color:var(--accent);background:var(--chip)}
+.drop p{margin:0;color:var(--muted)}
+.files{display:flex;flex-wrap:wrap;gap:8px}
+.file{font:500 .78rem var(--mono);padding:4px 9px;border-radius:3px;border:1px solid var(--line);background:var(--paper)}
+.file b{color:var(--accent);font-weight:500}
+.msg{font:500 .85rem var(--mono);min-height:1.2em}
+.msg.err{color:var(--high)} .msg.ok{color:var(--accent)}
+.example{font:500 .78rem var(--mono);color:var(--mark)}
+
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,140px),1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.kpi{background:var(--sheet);padding:14px 16px;min-width:0}
+.kpi b{display:block;font:700 1.7rem/1.1 var(--display);font-variant-numeric:tabular-nums}
+.kpi span{font-size:.85rem;color:var(--muted)}
+.kpi.high b{color:var(--high)} .kpi.med b{color:var(--med)} .kpi.low b{color:var(--low)}
+
+.charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:14px}
+.chart{border:1px solid var(--line);border-radius:4px;padding:14px;min-width:0}
+.chart h3{margin:0 0 10px}
+.bars{display:grid;gap:7px}
+.bar{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) 42px;gap:10px;align-items:center;font-size:.82rem}
+.bar .l{font-family:var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar .t{height:10px;background:var(--track);border-radius:2px;overflow:hidden}
+.bar .t i{display:block;height:100%;background:var(--bar)}
+.bar .v{font-family:var(--mono);text-align:right;font-variant-numeric:tabular-nums}
+
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:4px}
+table{border-collapse:collapse;width:100%;font-size:.85rem}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+tbody tr:last-child td{border-bottom:0}
+th{font:500 .72rem var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.06em;background:var(--paper);white-space:nowrap}
+td.m{font-family:var(--mono);font-size:.8rem;overflow-wrap:anywhere}
+td.num{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.t-find{min-width:880px} .t-sa{min-width:980px} .t-waste{min-width:760px}
+.sev{display:inline-block;font:500 .72rem var(--mono);padding:2px 7px;border-radius:3px;border:1px solid currentColor;white-space:nowrap}
+.sev.high{color:var(--high)} .sev.med{color:var(--med)} .sev.low{color:var(--low)} .sev.ok{color:var(--ok)}
+.chk{font:500 .78rem var(--mono);white-space:nowrap}
+.chk.pass{color:var(--ok)} .chk.fail{color:var(--high)} .chk.warn{color:var(--med)}
+.sub{display:block;color:var(--muted);font-size:.76rem}
+.filters{display:flex;flex-wrap:wrap;gap:12px;align-items:center;font-size:.88rem}
+.filters label{display:flex;gap:6px;align-items:center}
+.empty{padding:20px;text-align:center;color:var(--muted)}
+.foot{display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;align-items:center;padding:18px;border-top:1px solid var(--line)}
+.foot p{margin:0;max-width:62ch}
+footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;padding-block:24px;font:400 .8rem var(--mono);color:var(--muted);border-top:1px solid var(--line)}
+</style>
+<style>body{margin:0}[hidden]{display:none!important}</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <a class="logo" href="./">
+      <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><circle cx="13" cy="13" r="12" fill="none" stroke="var(--accent)" stroke-width="2"/><path d="M8 7v12M18 7v12M8 13h10" stroke="var(--accent)" stroke-width="2.4" fill="none"/></svg>
+      Landingzone<small>.in</small>
+    </a>
+    <div class="navr"><a href="planner.html">Firewall planner</a><a href="mapper.html">Traffic mapper</a><a class="cta" href="https://calendly.com/hello-landingzone/30min" target="_blank" rel="noopener">Book a free call</a></div>
+  </div>
+</header>
+
+<section class="intro">
+  <div class="wrap">
+    <div class="eyebrow">Free tool · Azure Resource Graph</div>
+    <h1>Azure inventory report</h1>
+    <p class="lede">Run three read-only Resource Graph queries, upload the results and get an inventory overview, a security check of every storage account and a list of resources you're paying for but not using.</p>
+    <div class="badges"><span>Read-only queries</span><span>No Azure sign-in on this site</span><span>Report builds in your browser</span></div>
+  </div>
+</section>
+
+<main>
+<div class="wrap">
+
+<section class="card" aria-labelledby="s1">
+  <h2 id="s1"><span class="step">STEP 1</span>Run the queries <small>Azure portal → Resource Graph Explorer → paste → Run query → Download as CSV</small></h2>
+  <div class="body">
+    <p class="hint">Reader access on the subscriptions is enough. Select every subscription you want in the report in the Resource Graph Explorer scope picker before running. The portal download supports large result sets; the Azure CLI returns up to 1,000 rows per call.</p>
+    <div class="queries" id="queries"></div>
+  </div>
+</section>
+
+<section class="card" aria-labelledby="s2">
+  <h2 id="s2"><span class="step">STEP 2</span>Upload the results</h2>
+  <div class="body">
+    <div class="drop" id="drop">
+      <p>Drop the CSV or JSON files here. The tool recognises which query each file came from.</p>
+      <div class="row"><label class="btn" for="files">Choose files</label><input type="file" id="files" accept=".csv,.json,text/csv,application/json" multiple hidden><button class="btn quiet" type="button" id="sample">Load example data</button><button class="btn quiet" type="button" id="clear">Clear</button></div>
+    </div>
+    <div class="files" id="loaded"></div>
+    <div class="msg" id="msg" role="status" aria-live="polite"></div>
+  </div>
+</section>
+
+<section class="card" aria-labelledby="s3">
+  <h2 id="s3"><span class="step">STEP 3</span>Report <span class="example" id="exflag"></span></h2>
+  <div class="body">
+    <div class="kpis" id="kpis"></div>
+    <div class="charts" id="charts"></div>
+
+    <h3>Findings</h3>
+    <div class="filters"><label><input type="checkbox" id="f-high" checked> High</label><label><input type="checkbox" id="f-med" checked> Medium</label><label><input type="checkbox" id="f-low" checked> Low</label><span id="fcount" class="hint"></span></div>
+    <div class="scroll"><table class="t-find"><thead><tr><th>Severity</th><th>Finding</th><th>Resource</th><th>Resource group</th><th>Subscription</th><th>Recommendation</th></tr></thead><tbody id="findings"></tbody></table></div>
+    <div class="row"><button class="btn ghost" type="button" id="copy-f">Copy findings for Excel</button><button class="btn ghost" type="button" id="dl">Download full report (CSV)</button></div>
+
+    <h3>Storage accounts</h3>
+    <div class="scroll"><table class="t-sa"><thead><tr><th>Account</th><th>SKU / kind</th><th>HTTPS only</th><th>Min TLS</th><th>Anonymous blob access</th><th>Network access</th><th>Private endpoints</th><th>Shared key</th></tr></thead><tbody id="sa"></tbody></table></div>
+
+    <h3>Unused and wasted resources</h3>
+    <div class="scroll"><table class="t-waste"><thead><tr><th>Type</th><th>Resource</th><th>Resource group</th><th>Location</th><th>Detail</th></tr></thead><tbody id="waste"></tbody></table></div>
+    <div class="row"><button class="btn ghost" type="button" id="copy-w">Copy list for Excel</button></div>
+    <div class="msg" id="msg2" role="status" aria-live="polite"></div>
+  </div>
+  <div class="foot">
+    <p><b>Want this turned into a remediation plan?</b> A landing zone health check covers governance, networking, identity and cost, with a prioritised fix list.</p>
+    <a class="btn" href="https://calendly.com/hello-landingzone/30min" target="_blank" rel="noopener">Book a free 30-minute call</a>
+  </div>
+</section>
+
+<p class="hint">Queries use Azure Resource Graph, which reads resource configuration only. Defaults are assumed where a property is empty: shared key access is treated as allowed and a missing minimum TLS version as not enforced. Check findings in the portal before changing production resources. <a href="https://learn.microsoft.com/azure/governance/resource-graph/concepts/work-with-data" target="_blank" rel="noopener">Resource Graph: working with data</a></p>
+
+</div>
+</main>
+
+<footer><div class="wrap"><span>© 2026 Landingzone.in</span><a href="./">Back to landingzone.in</a></div></footer>
+
+<script>
+(function(){
+var Q=[
+ {id:'inv',n:'1',t:'All resources',d:'Every resource with type, location, tags and the fields used to spot unused items.',q:
+"resources\n| extend diskState = tostring(properties.diskState),\n    diskSizeGB = toint(properties.diskSizeGB),\n    powerState = tostring(properties.extended.instanceView.powerState.code),\n    inUse = case(\n        type =~ 'microsoft.network/publicipaddresses', isnotempty(properties.ipConfiguration) or isnotempty(properties.natGateway),\n        type =~ 'microsoft.network/networkinterfaces', isnotempty(properties.virtualMachine) or isnotempty(properties.privateEndpoint),\n        true)\n| join kind=leftouter (resourcecontainers\n    | where type =~ 'microsoft.resources/subscriptions'\n    | project subscriptionId, subscriptionName = name) on subscriptionId\n| project name, type, location, resourceGroup, subscriptionId, subscriptionName,\n    sku = tostring(sku.name), kind, managedBy, diskState, diskSizeGB, powerState, inUse,\n    tagCount = array_length(bag_keys(tags)), id"},
+ {id:'sa',n:'2',t:'Storage accounts',d:'Security and network settings for every storage account.',q:
+"resources\n| where type =~ 'microsoft.storage/storageaccounts'\n| project name, resourceGroup, location, subscriptionId,\n    sku = tostring(sku.name), kind,\n    accessTier = tostring(properties.accessTier),\n    httpsOnly = tostring(properties.supportsHttpsTrafficOnly),\n    minTls = tostring(properties.minimumTlsVersion),\n    blobPublicAccess = tostring(properties.allowBlobPublicAccess),\n    sharedKeyAccess = tostring(properties.allowSharedKeyAccess),\n    publicNetworkAccess = tostring(properties.publicNetworkAccess),\n    defaultAction = tostring(properties.networkAcls.defaultAction),\n    privateEndpoints = coalesce(array_length(properties.privateEndpointConnections), 0), id"},
+ {id:'rg',n:'3',t:'Resource groups',d:'Every resource group with its resource count, to find empty ones.',q:
+"resourcecontainers\n| where type =~ 'microsoft.resources/subscriptions/resourcegroups'\n| project rgKey = tolower(id), rgName = name, subscriptionId, location\n| join kind=leftouter (resources\n    | extend rgKey = tolower(strcat('/subscriptions/', subscriptionId, '/resourceGroups/', resourceGroup))\n    | summarize resourceCount = count() by rgKey) on rgKey\n| project rgName, subscriptionId, location, resourceCount = coalesce(resourceCount, 0)"}
+];
+var data={inv:null,sa:null,rg:null},isExample=false,fileNames={};
+function $(id){return document.getElementById(id)}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function say(id,t,c){var e=$(id);e.textContent=t;e.className='msg '+(c||'')}
+function oneLine(q){return q.replace(/\s*\n\s*/g,' ')}
+
+$('queries').innerHTML=Q.map(function(q,i){
+  return '<div class="q"><h3><span>QUERY '+q.n+'</span>'+q.t+'</h3><p>'+q.d+'</p><pre id="q-'+q.id+'">'+esc(q.q)+'</pre>'+
+  '<div class="row"><button class="btn" type="button" data-copy="'+i+'">Copy query</button></div>'+
+  '<details><summary>Azure CLI instead</summary><pre>'+esc('az graph query -q "'+oneLine(q.q).replace(/"/g,'\\"')+'" --first 1000 -o json > '+q.id+'.json')+'</pre></details></div>'}).join('');
+$('queries').addEventListener('click',function(e){var b=e.target.closest('[data-copy]');if(!b)return;var t=Q[+b.dataset.copy].q;
+  var done=function(){b.textContent='Copied';setTimeout(function(){b.textContent='Copy query'},1500)};
+  try{navigator.clipboard.writeText(t).then(done,function(){sel(b)})}catch(x){sel(b)}});
+function sel(b){var pre=b.closest('.q').querySelector('pre');var r=document.createRange();r.selectNodeContents(pre);var s=getSelection();s.removeAllRanges();s.addRange(r);b.textContent='Selected, press Ctrl+C'}
+
+function parseCSV(text){
+  var rows=[],row=[],f='',q=false;text=text.replace(/^﻿/,'');
+  for(var i=0;i<text.length;i++){var c=text[i];
+    if(q){if(c==='"'){if(text[i+1]==='"'){f+='"';i++}else q=false}else f+=c}
+    else if(c==='"')q=true;else if(c===','){row.push(f);f=''}
+    else if(c==='\n'||c==='\r'){if(c==='\r'&&text[i+1]==='\n')i++;row.push(f);rows.push(row);row=[];f=''}
+    else f+=c}
+  if(f!==''||row.length){row.push(f);rows.push(row)}
+  rows=rows.filter(function(r){return r.some(function(x){return x.trim()!==''})});
+  if(!rows.length)return [];
+  var h=rows[0].map(function(x){return x.trim()});
+  return rows.slice(1).map(function(r){var o={};h.forEach(function(k,i){o[k]=r[i]!=null?r[i]:''});return o});
+}
+function parseAny(name,text){
+  var t=text.trim();
+  if(t[0]==='{'||t[0]==='['){var j=JSON.parse(t);var arr=Array.isArray(j)?j:(j.data||j.Data||[]);
+    if(arr&&arr.rows&&arr.columns){var cols=arr.columns.map(function(c){return c.name});arr=arr.rows.map(function(r){var o={};cols.forEach(function(c,i){o[c]=r[i]});return o})}
+    return arr}
+  return parseCSV(text);
+}
+function low(o){var n={};for(var k in o)n[k.toLowerCase()]=o[k];return n}
+function kindOf(rows){if(!rows.length)return null;var k=Object.keys(rows[0]).map(function(x){return x.toLowerCase()});
+  if(k.indexOf('mintls')>=0||k.indexOf('blobpublicaccess')>=0)return 'sa';
+  if(k.indexOf('resourcecount')>=0)return 'rg';
+  if(k.indexOf('type')>=0&&k.indexOf('name')>=0)return 'inv';return null}
+function S(v){return v==null?'':String(v)}
+function bool(v){v=S(v).toLowerCase();return v==='true'?true:v==='false'?false:null}
+
+function addFile(name,text){
+  var rows=parseAny(name,text).map(low);var k=kindOf(rows);
+  if(!k)throw new Error(name+': could not tell which query this file came from. Check that the header row was kept.');
+  data[k]=(isExample?[]:(data[k]||[])).concat(rows);fileNames[k]=(fileNames[k]&&!isExample?fileNames[k]+', ':'')+name;return [k,rows.length];
+}
+function shortSub(r){return S(r.subscriptionname)||(S(r.subscriptionid).slice(0,8)+'…')}
+function shortType(t){t=S(t).toLowerCase();var p=t.split('/');return p.length>1?p.slice(1).join('/'):t}
+var NICE={'microsoft.compute/virtualmachines':'Virtual machines','microsoft.compute/disks':'Managed disks','microsoft.network/networkinterfaces':'Network interfaces','microsoft.network/publicipaddresses':'Public IPs','microsoft.network/networksecuritygroups':'NSGs','microsoft.network/virtualnetworks':'Virtual networks','microsoft.storage/storageaccounts':'Storage accounts','microsoft.keyvault/vaults':'Key vaults','microsoft.web/sites':'App Services','microsoft.sql/servers/databases':'SQL databases','microsoft.sql/servers':'SQL servers','microsoft.network/privateendpoints':'Private endpoints','microsoft.network/loadbalancers':'Load balancers','microsoft.web/serverfarms':'App Service plans','microsoft.operationalinsights/workspaces':'Log Analytics','microsoft.compute/snapshots':'Snapshots'};
+function nice(t){t=S(t).toLowerCase();return NICE[t]||shortType(t)}
+
+function analyse(){
+  var F=[],W=[];
+  var inv=data.inv||[],sa=data.sa||[],rg=data.rg||[];
+  var subName={};inv.forEach(function(r){if(r.subscriptionname)subName[S(r.subscriptionid)]=S(r.subscriptionname)});
+  var sub=function(r){return subName[S(r.subscriptionid)]||(S(r.subscriptionid).slice(0,8)+'…')};
+  function f(sev,title,r,rec,res){F.push({sev:sev,title:title,res:res||S(r.name),rg:S(r.resourcegroup||r.rgname),sub:sub(r),rec:rec})}
+  // storage
+  sa.forEach(function(r){
+    var https=bool(r.httpsonly),tls=S(r.mintls),pub=bool(r.blobpublicaccess),sk=bool(r.sharedkeyaccess),pna=S(r.publicnetworkaccess).toLowerCase(),da=S(r.defaultaction).toLowerCase(),pe=+S(r.privateendpoints)||0;
+    if(pub===true)f('high','Anonymous blob access allowed',r,'Set "Allow Blob anonymous access" to Disabled unless the account intentionally serves public content.');
+    if(https===false)f('high','HTTP (unencrypted) access allowed',r,'Enable "Secure transfer required".');
+    if(tls!=='TLS1_2'&&tls!=='TLS1_3')f('med','Minimum TLS version '+(tls?tls.replace('TLS','TLS ').replace('_','.'):'not set'),r,'Set the minimum TLS version to 1.2 after checking that clients support it.');
+    var open=pna!=='disabled'&&da!=='deny';
+    if(open&&pe===0)f('med','Reachable from all networks',r,'Restrict to selected networks or disable public access and use a private endpoint.');
+    if(sk!==false)f('low','Shared key (account key) access allowed',r,'Prefer Microsoft Entra ID authorisation and disable shared key access where apps allow it.');
+  });
+  // waste from inventory
+  inv.forEach(function(r){var t=S(r.type).toLowerCase();
+    if(t==='microsoft.compute/disks'&&S(r.diskstate)==='Unattached'){
+      var gb=S(r.disksizegb);W.push({type:'Unattached disk',r:r,detail:(gb?gb+' GB · ':'')+(S(r.sku)||'')});f('med','Unattached managed disk'+(gb?' ('+gb+' GB)':''),r,'Snapshot it if needed, then delete it to stop paying for the disk.')}
+    if(t==='microsoft.network/publicipaddresses'&&bool(r.inuse)===false){W.push({type:'Unused public IP',r:r,detail:S(r.sku)});f('low','Public IP not associated',r,'Delete it if it is not reserved for a planned use. Standard public IPs are billed when unassociated.')}
+    if(t==='microsoft.network/networkinterfaces'&&bool(r.inuse)===false){W.push({type:'Orphaned NIC',r:r,detail:'Not attached to a VM or private endpoint'});f('low','Network interface not attached',r,'Delete orphaned NICs to free IP addresses and reduce clutter.')}
+    if(t==='microsoft.compute/virtualmachines'&&S(r.powerstate)==='PowerState/stopped'){W.push({type:'Stopped VM (still allocated)',r:r,detail:S(r.sku)});f('med','VM stopped but not deallocated',r,'Stop the VM from Azure (deallocate) so compute charges stop.')}
+  });
+  rg.forEach(function(r){if((+S(r.resourcecount)||0)===0){W.push({type:'Empty resource group',r:{name:S(r.rgname),resourcegroup:S(r.rgname),location:S(r.location),subscriptionid:S(r.subscriptionid)},detail:'No resources'});F.push({sev:'low',title:'Empty resource group',res:S(r.rgname),rg:S(r.rgname),sub:sub(r),rec:'Delete it if no deployment depends on it.'})}});
+  // untagged summary as one finding
+  var untag=inv.filter(function(r){return S(r.tagcount)===''||+S(r.tagcount)===0});
+  var ord={high:0,med:1,low:2};F.sort(function(a,b){return ord[a.sev]-ord[b.sev]||a.title.localeCompare(b.title)||a.res.localeCompare(b.res)});
+  return {F:F,W:W,untag:untag.length,subName:subName};
+}
+
+function bars(title,map,limit){
+  var e=Object.keys(map).map(function(k){return [k,map[k]]}).sort(function(a,b){return b[1]-a[1]});
+  var rest=e.slice(limit);e=e.slice(0,limit);if(rest.length)e.push(['Other ('+rest.length+')',rest.reduce(function(s,x){return s+x[1]},0)]);
+  var max=Math.max.apply(null,e.map(function(x){return x[1]}).concat([1]));
+  return '<div class="chart"><h3>'+title+'</h3><div class="bars">'+(e.length?e.map(function(x){return '<div class="bar"><span class="l" title="'+esc(x[0])+'">'+esc(x[0])+'</span><span class="t"><i style="width:'+(x[1]/max*100).toFixed(1)+'%"></i></span><span class="v">'+x[1]+'</span></div>'}).join(''):'<p class="hint">Upload query 1.</p>')+'</div></div>';
+}
+var last={F:[],W:[]};
+function render(){
+  var A=analyse();last=A;var inv=data.inv||[];
+  var byType={},byLoc={},bySub={};inv.forEach(function(r){var t=nice(r.type);byType[t]=(byType[t]||0)+1;var l=S(r.location)||'global';byLoc[l]=(byLoc[l]||0)+1;var s=A.subName[S(r.subscriptionid)]||S(r.subscriptionid).slice(0,8)+'…';bySub[s]=(bySub[s]||0)+1});
+  var c={high:0,med:0,low:0};A.F.forEach(function(f){c[f.sev]++});
+  $('kpis').innerHTML='<div class="kpi"><b>'+inv.length+'</b><span>resources</span></div><div class="kpi"><b>'+Object.keys(bySub).length+'</b><span>subscriptions</span></div><div class="kpi"><b>'+Object.keys(byLoc).length+'</b><span>regions</span></div><div class="kpi high"><b>'+c.high+'</b><span>high findings</span></div><div class="kpi med"><b>'+c.med+'</b><span>medium findings</span></div><div class="kpi low"><b>'+c.low+'</b><span>low findings</span></div><div class="kpi"><b>'+A.untag+'</b><span>resources with no tags</span></div>';
+  $('charts').innerHTML=bars('Resources by type',byType,8)+bars('Resources by region',byLoc,6)+bars('Resources by subscription',bySub,6);
+  renderFindings();
+  var sa=data.sa||[];
+  var ck=function(ok,t,warn){return '<span class="chk '+(ok?'pass':warn?'warn':'fail')+'">'+(ok?'✓ ':warn?'! ':'✗ ')+esc(t)+'</span>'};
+  $('sa').innerHTML=sa.length?sa.map(function(r){var https=bool(r.httpsonly),tls=S(r.mintls),pub=bool(r.blobpublicaccess),sk=bool(r.sharedkeyaccess),pna=S(r.publicnetworkaccess).toLowerCase(),da=S(r.defaultaction).toLowerCase(),pe=+S(r.privateendpoints)||0;
+    var net=pna==='disabled'?ck(true,'Public access disabled'):da==='deny'?ck(true,'Selected networks'):ck(pe>0,pe>0?'All networks + PE':'All networks',pe>0);
+    return '<tr><td class="m"><b>'+esc(r.name)+'</b><span class="sub">'+esc(S(r.resourcegroup))+' · '+esc(S(r.location))+'</span></td><td class="m">'+esc(S(r.sku))+'<span class="sub">'+esc(S(r.kind))+(r.accesstier?' · '+esc(r.accesstier):'')+'</span></td><td>'+ck(https!==false,https===false?'No':'Yes')+'</td><td>'+ck(tls==='TLS1_2'||tls==='TLS1_3',tls?tls.replace('TLS','').replace('_','.'):'Not set',!tls||tls==='TLS1_1')+'</td><td>'+ck(pub!==true,pub===true?'Allowed':'Disabled')+'</td><td>'+net+'</td><td class="num">'+pe+'</td><td>'+ck(sk===false,sk===false?'Disabled':'Allowed',true)+'</td></tr>'}).join(''):'<tr><td colspan="8" class="empty">Upload query 2 to check storage accounts.</td></tr>';
+  $('waste').innerHTML=A.W.length?A.W.map(function(w){return '<tr><td>'+esc(w.type)+'</td><td class="m">'+esc(S(w.r.name))+'</td><td class="m">'+esc(S(w.r.resourcegroup))+'</td><td class="m">'+esc(S(w.r.location))+'</td><td>'+esc(w.detail)+'</td></tr>'}).join(''):'<tr><td colspan="5" class="empty">'+(data.inv||data.rg?'Nothing unused found.':'Upload queries 1 and 3 to find unused resources.')+'</td></tr>';
+  $('exflag').textContent=isExample?'EXAMPLE DATA':'';
+  $('loaded').innerHTML=Q.map(function(q){var d=data[q.id];return '<span class="file">Query '+q.n+': '+(d?'<b>'+d.length+' rows</b>':'not loaded')+'</span>'}).join('');
+}
+function renderFindings(){
+  var show={high:$('f-high').checked,med:$('f-med').checked,low:$('f-low').checked};
+  var F=last.F.filter(function(f){return show[f.sev]});var L={high:'High',med:'Medium',low:'Low'};
+  $('fcount').textContent=F.length+' of '+last.F.length+' shown';
+  $('findings').innerHTML=F.length?F.map(function(f){return '<tr><td><span class="sev '+f.sev+'">'+L[f.sev]+'</span></td><td>'+esc(f.title)+'</td><td class="m">'+esc(f.res)+'</td><td class="m">'+esc(f.rg)+'</td><td class="m">'+esc(f.sub)+'</td><td>'+esc(f.rec)+'</td></tr>'}).join(''):'<tr><td colspan="6" class="empty">'+(last.F.length?'No findings at the selected severities.':'No findings yet. Upload the query results.')+'</td></tr>';
+}
+['f-high','f-med','f-low'].forEach(function(id){$(id).onchange=renderFindings});
+
+function tsv(rows,sep){var q=function(x){x=String(x==null?'':x);return sep===','?'"'+x.replace(/"/g,'""')+'"':x.replace(/[\t\n]/g,' ')};return rows.map(function(r){return r.map(q).join(sep)}).join('\n')}
+var L={high:'High',med:'Medium',low:'Low'};
+function fRows(){return [['Severity','Finding','Resource','Resource group','Subscription','Recommendation']].concat(last.F.map(function(f){return [L[f.sev],f.title,f.res,f.rg,f.sub,f.rec]}))}
+function wRows(){return [['Type','Resource','Resource group','Location','Detail']].concat(last.W.map(function(w){return [w.type,S(w.r.name),S(w.r.resourcegroup),S(w.r.location),w.detail]}))}
+function copy(t,l){try{navigator.clipboard.writeText(t).then(function(){say('msg2','Copied '+l+'.','ok')},function(){fb(t,l)})}catch(e){fb(t,l)}}
+function fb(t,l){var ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();var ok=false;try{ok=document.execCommand('copy')}catch(e){}ta.remove();say('msg2',ok?'Copied '+l+'.':'Copy was blocked. Use the CSV download.',ok?'ok':'err')}
+$('copy-f').onclick=function(){copy(tsv(fRows(),'\t'),'findings')};
+$('copy-w').onclick=function(){copy(tsv(wRows(),'\t'),'unused resources')};
+$('dl').onclick=function(){var t='FINDINGS\n'+tsv(fRows(),',')+'\n\nUNUSED RESOURCES\n'+tsv(wRows(),',');
+  try{var b=new Blob(['﻿'+t],{type:'text/csv;charset=utf-8'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='azure-inventory-report.csv';document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},500);say('msg2','CSV downloaded.','ok')}catch(e){say('msg2','Download is not available here. Use the copy buttons.','err')}};
+
+function handle(files){
+  if(isExample){data={inv:null,sa:null,rg:null};isExample=false}
+  var list=[].slice.call(files),done=0,msgs=[],errs=[];
+  if(!list.length)return;
+  list.forEach(function(f){
+    if(f.size>60*1024*1024){errs.push(f.name+' is over 60 MB.');if(++done===list.length)fin();return}
+    var r=new FileReader();r.onload=function(){try{var res=addFile(f.name,String(r.result));msgs.push(f.name+' → query '+{inv:1,sa:2,rg:3}[res[0]]+' ('+res[1]+' rows)')}catch(e){errs.push(e.message)}if(++done===list.length)fin()};
+    r.onerror=function(){errs.push('Could not read '+f.name);if(++done===list.length)fin()};r.readAsText(f)});
+  function fin(){render();if(errs.length)say('msg',errs.join(' '),'err');else say('msg','Loaded '+msgs.join('; ')+'.','ok')}
+}
+$('files').onchange=function(){handle(this.files);this.value=''};
+var dz=$('drop');
+['dragenter','dragover'].forEach(function(ev){dz.addEventListener(ev,function(e){e.preventDefault();dz.classList.add('over')})});
+['dragleave','drop'].forEach(function(ev){dz.addEventListener(ev,function(e){e.preventDefault();dz.classList.remove('over')})});
+dz.addEventListener('drop',function(e){if(e.dataTransfer&&e.dataTransfer.files)handle(e.dataTransfer.files)});
+$('clear').onclick=function(){data={inv:null,sa:null,rg:null};isExample=false;render();say('msg','Cleared.','ok')};
+
+function sample(){
+  var subs=[['11111111-aaaa-4bbb-8ccc-000000000001','sub-prod'],['22222222-aaaa-4bbb-8ccc-000000000002','sub-nonprod']];
+  var inv=[],sa=[],rg=[],n=0;
+  function R(type,name,rgN,loc,si,extra){var o={name:name,type:type,location:loc,resourcegroup:rgN,subscriptionid:subs[si][0],subscriptionname:subs[si][1],sku:'',kind:'',managedby:'',diskstate:'',disksizegb:'',powerstate:'',inuse:'true',tagcount:String(n++%4===0?0:3)};for(var k in extra)o[k]=extra[k];inv.push(o)}
+  var vms=[['vm-web-01','rg-web-prod','centralindia',0,'PowerState/running'],['vm-web-02','rg-web-prod','centralindia',0,'PowerState/running'],['vm-app-01','rg-app-prod','centralindia',0,'PowerState/running'],['vm-sql-01','rg-data-prod','centralindia',0,'PowerState/running'],['vm-test-01','rg-test','southindia',1,'PowerState/stopped'],['vm-build-01','rg-devops','southindia',1,'PowerState/deallocated']];
+  vms.forEach(function(v){R('microsoft.compute/virtualmachines',v[0],v[1],v[2],v[3],{sku:'Standard_D4s_v5',powerstate:v[4]});R('microsoft.compute/disks',v[0]+'-osdisk',v[1],v[2],v[3],{sku:'Premium_LRS',managedby:'/vm/'+v[0],diskstate:v[4]==='PowerState/deallocated'?'Reserved':'Attached',disksizegb:'128'});R('microsoft.network/networkinterfaces',v[0]+'-nic',v[1],v[2],v[3],{})});
+  R('microsoft.compute/disks','disk-old-data-01','rg-data-prod','centralindia',0,{sku:'Premium_LRS',diskstate:'Unattached',disksizegb:'512'});
+  R('microsoft.compute/disks','vm-legacy-osdisk','rg-test','southindia',1,{sku:'StandardSSD_LRS',diskstate:'Unattached',disksizegb:'128'});
+  R('microsoft.network/networkinterfaces','vm-legacy-nic','rg-test','southindia',1,{inuse:'false'});
+  R('microsoft.network/publicipaddresses','pip-app-gw','rg-hub','centralindia',0,{sku:'Standard'});
+  R('microsoft.network/publicipaddresses','pip-old-vpn','rg-hub','centralindia',0,{sku:'Standard',inuse:'false'});
+  ['vnet-hub','vnet-prod','vnet-nonprod'].forEach(function(v,i){R('microsoft.network/virtualnetworks',v,i===2?'rg-nonprod-net':'rg-hub','centralindia',i===2?1:0,{})});
+  ['nsg-web','nsg-app','nsg-data'].forEach(function(v){R('microsoft.network/networksecuritygroups',v,'rg-hub','centralindia',0,{})});
+  R('microsoft.keyvault/vaults','kv-prod-ci','rg-security','centralindia',0,{});R('microsoft.operationalinsights/workspaces','log-platform','rg-monitor','centralindia',0,{});
+  R('microsoft.web/serverfarms','asp-portal','rg-web-prod','centralindia',0,{sku:'P1v3'});R('microsoft.web/sites','app-portal','rg-web-prod','centralindia',0,{});
+  var stg=[['stprodlogs01','rg-monitor',0,'Standard_GRS','true','TLS1_2','false','false','Enabled','Deny',0],['stwebassets01','rg-web-prod',0,'Standard_LRS','true','TLS1_2','true','','Enabled','Allow',0],['stbackupci01','rg-data-prod',0,'Standard_ZRS','true','TLS1_2','false','false','Disabled','Deny',1],['sttestdata01','rg-test',1,'Standard_LRS','false','TLS1_0','','','','Allow',0],['stdevopscache','rg-devops',1,'Standard_LRS','true','','false','','Enabled','Allow',0]];
+  stg.forEach(function(s){R('microsoft.storage/storageaccounts',s[0],s[1],'centralindia',s[2],{sku:s[3],kind:'StorageV2'});sa.push({name:s[0],resourcegroup:s[1],location:'centralindia',subscriptionid:subs[s[2]][0],sku:s[3],kind:'StorageV2',accesstier:'Hot',httpsonly:s[4],mintls:s[5],blobpublicaccess:s[6],sharedkeyaccess:s[7],publicnetworkaccess:s[8],defaultaction:s[9],privateendpoints:String(s[10])})});
+  var cnt={};inv.forEach(function(r){var k=r.subscriptionid+'|'+r.resourcegroup;cnt[k]=(cnt[k]||0)+1});
+  Object.keys(cnt).forEach(function(k){var p=k.split('|');rg.push({rgname:p[1],subscriptionid:p[0],location:'centralindia',resourcecount:String(cnt[k])})});
+  rg.push({rgname:'rg-poc-2024',subscriptionid:subs[1][0],location:'southindia',resourcecount:'0'});
+  data={inv:inv,sa:sa,rg:rg};isExample=true;render();say('msg','Example environment loaded. Upload your own results to replace it.','ok');
+}
+$('sample').onclick=sample;
+sample();
+})();
+</script>
+</body>
+</html>
