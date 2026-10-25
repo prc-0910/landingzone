@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="canonical" href="https://landingzone.in/mapper.html">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://landingzone.in/mapper.html">
+<meta property="og:title" content="Migration Traffic Mapper – Landingzone.in">
+<meta property="og:description" content="Free tool: turn an Azure Migrate dependency export or netstat output into flows, wave risks, NSG and Azure Firewall rules.">
+<meta property="og:image" content="https://landingzone.in/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<title>Migration Traffic Mapper</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Free tool: turn an Azure Migrate dependency export or netstat output into application flows, migration-wave risks, NSG rules and Azure Firewall rules.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;700&family=Public+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: three numbered steps down one sheet: load data, map servers, take the rules */
+:root{
+  --paper:#eef2ec; --sheet:#fbfcfa; --ink:#17251e; --muted:#566a5f; --line:#cfd9d1;
+  --accent:#1d6a49; --mark:#8a5d10; --chip:#e3ebe5;
+  --ok:#1d6a49; --warn:#8a5d10; --risk:#b3261e; --info:#1d5f8a;
+  --display:"Familjen Grotesk",ui-sans-serif,system-ui,sans-serif;
+  --body:"Public Sans",ui-sans-serif,system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#101914; --sheet:#16221c; --ink:#e4ece6; --muted:#98ab9f; --line:#27372e;
+  --accent:#5cc493; --mark:#e0a94a; --chip:#1f2e26; --ok:#5cc493; --warn:#e0a94a; --risk:#f2877e; --info:#7cbbe6; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#101914; --sheet:#16221c; --ink:#e4ece6; --muted:#98ab9f; --line:#27372e;
+  --accent:#5cc493; --mark:#e0a94a; --chip:#1f2e26; --ok:#5cc493; --warn:#e0a94a; --risk:#f2877e; --info:#7cbbe6; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font:400 1rem/1.6 var(--body)}
+a{color:var(--accent);text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--mark);outline-offset:2px;border-radius:2px}
+.wrap{max-width:1240px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.top{border-bottom:1px solid var(--line)}
+header.top .wrap{display:flex;justify-content:space-between;align-items:center;gap:16px;padding-block:12px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:10px;font:700 1.1rem var(--display);color:var(--ink);text-decoration:none}
+.logo small{font:500 .8rem var(--mono);color:var(--muted)}
+.navr{display:flex;gap:16px;align-items:center;flex-wrap:wrap;font-size:.95rem}
+.cta{color:var(--sheet);background:var(--accent);padding:8px 14px;border-radius:3px;text-decoration:none;font-weight:600}
+
+.intro .wrap{padding-block:40px 20px}
+.eyebrow{font:500 .78rem var(--mono);color:var(--mark);letter-spacing:.08em;text-transform:uppercase}
+h1{font:700 clamp(2rem,4.6vw,3.1rem)/1.05 var(--display);letter-spacing:-.025em;margin:10px 0 12px;max-width:22ch;text-wrap:balance}
+.lede{color:var(--muted);max-width:68ch;margin:0}
+.badges{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:16px;font:500 .8rem var(--mono);color:var(--muted)}
+.badges span::before{content:"✓ ";color:var(--accent)}
+
+main .wrap{display:grid;gap:20px;padding-block:8px 56px}
+.card{background:var(--sheet);border:1px solid var(--line);border-radius:6px;min-width:0}
+.card>h2{font:700 1.2rem var(--display);margin:0;padding:16px 18px;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:baseline;flex-wrap:wrap}
+.card>h2 .step{font:500 .8rem var(--mono);color:var(--mark)}
+.card>h2 small{font:400 .9rem var(--body);color:var(--muted)}
+.body{padding:18px;display:grid;gap:14px;min-width:0}
+
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tab{font:600 .9rem var(--body);padding:8px 12px;border:1px solid var(--line);border-radius:3px;background:var(--paper);color:var(--ink);cursor:pointer}
+.tab[aria-selected="true"]{border-color:var(--accent);background:var(--chip);color:var(--accent)}
+.pane{display:grid;gap:10px}
+.pane[hidden]{display:none}
+.pane p{margin:0;font-size:.92rem;color:var(--muted);max-width:80ch}
+textarea,input[type=text],select{font:400 .88rem var(--mono);padding:8px 10px;border:1px solid var(--line);border-radius:4px;background:var(--paper);color:var(--ink);width:100%}
+textarea{min-height:150px;resize:vertical}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.row label{font-size:.88rem;font-weight:600;display:flex;gap:8px;align-items:center}
+.row input[type=text]{width:auto;flex:1 1 200px}
+.btn{font:600 .9rem var(--body);padding:9px 14px;border-radius:3px;border:1px solid var(--accent);background:var(--accent);color:var(--sheet);cursor:pointer;text-decoration:none;display:inline-block}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn.quiet{background:transparent;color:var(--muted);border-color:var(--line)}
+.file{font-size:.88rem}
+.msg{font:500 .85rem var(--mono);min-height:1.2em}
+.msg.err{color:var(--risk)} .msg.ok{color:var(--accent)}
+
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.kpi{background:var(--sheet);padding:14px 16px;min-width:0}
+.kpi b{display:block;font:700 1.7rem/1.1 var(--display);font-variant-numeric:tabular-nums}
+.kpi span{font-size:.85rem;color:var(--muted)}
+.kpi.risk b{color:var(--risk)} .kpi.warn b{color:var(--warn)}
+
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:4px}
+table{border-collapse:collapse;width:100%;font-size:.86rem}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+tbody tr:last-child td{border-bottom:0}
+th{font:500 .72rem var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.06em;background:var(--paper);white-space:nowrap}
+td.m{font-family:var(--mono);font-size:.82rem;overflow-wrap:anywhere}
+td.num{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.srv td{padding:6px 8px} .srv input,.srv select{padding:6px 8px;min-width:120px}
+.t-flows{min-width:820px} .t-srv{min-width:640px} .t-rules{min-width:900px}
+.tag{display:inline-block;font:500 .72rem var(--mono);padding:2px 7px;border-radius:3px;border:1px solid currentColor;white-space:nowrap}
+.tag.ok{color:var(--ok)} .tag.warn{color:var(--warn)} .tag.risk{color:var(--risk)} .tag.info{color:var(--info)} .tag.mute{color:var(--muted)}
+.proc{display:block;color:var(--muted);font-size:.78rem}
+.legend{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:.85rem;color:var(--muted)}
+.legend span{display:flex;gap:6px;align-items:center}
+.empty{padding:22px;text-align:center;color:var(--muted)}
+pre{margin:0;padding:14px;background:var(--paper);border:1px solid var(--line);border-radius:4px;font:400 .8rem/1.55 var(--mono);overflow-x:auto;white-space:pre;max-height:360px}
+.hint{font-size:.85rem;color:var(--muted);margin:0}
+.foot{display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;align-items:center;padding:18px}
+.foot p{margin:0;max-width:62ch}
+footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;padding-block:24px;font:400 .8rem var(--mono);color:var(--muted);border-top:1px solid var(--line)}
+</style>
+<style>body{margin:0}[hidden]{display:none!important}</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <a class="logo" href="./">
+      <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><circle cx="13" cy="13" r="12" fill="none" stroke="var(--accent)" stroke-width="2"/><path d="M8 7v12M18 7v12M8 13h10" stroke="var(--accent)" stroke-width="2.4" fill="none"/></svg>
+      Landingzone<small>.in</small>
+    </a>
+    <div class="navr"><a href="planner.html">Firewall planner</a><a class="cta" href="https://calendly.com/hello-landingzone/30min" target="_blank" rel="noopener">Book a free call</a></div>
+  </div>
+</header>
+
+<section class="intro">
+  <div class="wrap">
+    <div class="eyebrow">Free tool · Part 2</div>
+    <h1>Migration traffic mapper</h1>
+    <p class="lede">Load an Azure Migrate dependency export or netstat output. See which servers talk to each other, which flows break when you split servers across migration waves, and get NSG and Azure Firewall rules for the target network.</p>
+    <div class="badges"><span>Azure Migrate export, CSV or netstat</span><span>Runs in your browser</span><span>No data leaves your machine</span></div>
+  </div>
+</section>
+
+<main>
+<div class="wrap">
+
+<section class="card" aria-labelledby="h1s">
+  <h2 id="h1s"><span class="step">STEP 1</span>Load connection data <small>An example is loaded so you can see the output</small></h2>
+  <div class="body">
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" type="button" id="tab-am" aria-selected="true" data-p="p-am">Azure Migrate export</button>
+      <button class="tab" role="tab" type="button" id="tab-csv" aria-selected="false" data-p="p-csv">Generic CSV</button>
+      <button class="tab" role="tab" type="button" id="tab-ns" aria-selected="false" data-p="p-ns">netstat / ss</button>
+    </div>
+
+    <div class="pane" id="p-am" role="tabpanel">
+      <p>In Azure Migrate, open <b>Dependency analysis → Export application dependencies</b>, unzip the file and choose the CSV. Columns used: Source server name, Source process, Destination server name, Destination IP, Destination process, Destination port.</p>
+      <div class="row"><input class="file" type="file" id="file-am" accept=".csv,text/csv"><button class="btn" type="button" id="load-am">Analyse file</button></div>
+    </div>
+
+    <div class="pane" id="p-csv" role="tabpanel" hidden>
+      <p>Paste rows with a header line. Recognised columns: <b>source</b>, <b>source_ip</b>, <b>destination</b>, <b>destination_ip</b>, <b>port</b>, <b>protocol</b>. Names or IPs both work.</p>
+      <textarea id="txt-csv" spellcheck="false" placeholder="source,source_ip,destination,destination_ip,port,protocol&#10;web01,10.20.1.11,app01,10.20.2.21,8443,TCP"></textarea>
+      <div class="row"><input class="file" type="file" id="file-csv" accept=".csv,.txt,text/csv"><button class="btn" type="button" id="load-csv">Analyse</button></div>
+    </div>
+
+    <div class="pane" id="p-ns" role="tabpanel" hidden>
+      <p>On each server run <b>netstat -ano</b> (Windows) or <b>ss -tan</b> / <b>netstat -tan</b> (Linux), paste the output and add it. Repeat for each server; flows are merged.</p>
+      <div class="row"><label for="ns-name">Server name</label><input type="text" id="ns-name" placeholder="app01"></div>
+      <textarea id="txt-ns" spellcheck="false" placeholder="  TCP    10.20.2.21:8443    10.20.1.11:51544    ESTABLISHED    3120"></textarea>
+      <div class="row"><button class="btn" type="button" id="load-ns">Add this server</button></div>
+    </div>
+
+    <div class="row"><button class="btn quiet" type="button" id="sample">Load example data</button><button class="btn quiet" type="button" id="clear">Clear all data</button></div>
+    <div class="msg" id="msg" role="status" aria-live="polite"></div>
+  </div>
+</section>
+
+<section class="card" aria-labelledby="h2s">
+  <h2 id="h2s"><span class="step">STEP 2</span>Map servers to waves and target subnets <small>Edit any cell; results update instantly</small></h2>
+  <div class="body">
+    <p class="hint">Set the migration wave for each server, or mark it as staying on-premises. Add the target subnet CIDR in Azure to generate rules with Azure address ranges.</p>
+    <div class="scroll"><table class="t-srv srv"><thead><tr><th>Server</th><th>Current IP</th><th>Wave</th><th>Target subnet (CIDR)</th><th>Flows</th></tr></thead><tbody id="servers"></tbody></table></div>
+  </div>
+</section>
+
+<section class="card" aria-labelledby="h3s">
+  <h2 id="h3s"><span class="step">STEP 3</span>Results</h2>
+  <div class="body">
+    <div class="kpis" id="kpis"></div>
+
+    <h3 style="font:700 1.05rem var(--display);margin:8px 0 0">Application flows</h3>
+    <div class="legend">
+      <span><span class="tag ok">Same wave</span> moves together</span>
+      <span><span class="tag risk">Cross-wave</span> needs a hybrid path during migration</span>
+      <span><span class="tag warn">To on-prem</span> permanent hybrid dependency</span>
+      <span><span class="tag mute">Unresolved</span> destination not in the server list</span>
+    </div>
+    <div class="row"><label><input type="checkbox" id="hide-unres"> Hide unresolved destinations</label><label><input type="checkbox" id="hide-infra"> Hide DNS, Kerberos, LDAP, NTP</label></div>
+    <div class="scroll"><table class="t-flows"><thead><tr><th>Source</th><th>Destination</th><th>Port</th><th>Seen</th><th>Waves</th><th>Status</th></tr></thead><tbody id="flows"></tbody></table></div>
+    <div class="row"><button class="btn ghost" type="button" id="copy-flows">Copy flows for Excel</button></div>
+
+    <h3 style="font:700 1.05rem var(--display);margin:12px 0 0">NSG inbound rules</h3>
+    <p class="hint">One rule per destination subnet, port and source group. Sources that stay on-premises keep their current IP, reached over ExpressRoute or VPN.</p>
+    <div class="scroll"><table class="t-rules"><thead><tr><th>NSG</th><th>Priority</th><th>Name</th><th>Source</th><th>Destination</th><th>Port</th><th>Protocol</th></tr></thead><tbody id="nsg"></tbody></table></div>
+    <div class="row"><button class="btn ghost" type="button" id="copy-nsg">Copy NSG rules for Excel</button><button class="btn ghost" type="button" id="dl">Download all as CSV</button></div>
+
+    <h3 style="font:700 1.05rem var(--display);margin:12px 0 0">Azure CLI</h3>
+    <p class="hint">Replace <b>&lt;resource-group&gt;</b> before running. NSGs are named after the subnet; create them first if they don't exist.</p>
+    <pre id="cli"></pre>
+    <div class="row"><button class="btn ghost" type="button" id="copy-cli">Copy commands</button></div>
+
+    <h3 style="font:700 1.05rem var(--display);margin:12px 0 0">Azure Firewall network rules</h3>
+    <p class="hint">Flows that cross subnets or go to on-premises, for a hub firewall that inspects spoke-to-spoke and hybrid traffic.</p>
+    <div class="scroll"><table class="t-rules"><thead><tr><th>Rule</th><th>Source addresses</th><th>Destination addresses</th><th>Port</th><th>Protocol</th></tr></thead><tbody id="afw"></tbody></table></div>
+    <div class="row"><button class="btn ghost" type="button" id="copy-afw">Copy firewall rules for Excel</button></div>
+    <div class="msg" id="msg2" role="status" aria-live="polite"></div>
+  </div>
+  <div class="foot" style="border-top:1px solid var(--line)">
+    <p><b>Want a second pair of eyes on your wave plan?</b> I can review the dependencies, the rules and the target network design with you.</p>
+    <a class="btn" href="https://calendly.com/hello-landingzone/30min" target="_blank" rel="noopener">Book a free 30-minute call</a>
+  </div>
+</section>
+
+<p class="hint">Export format from Microsoft Learn: <a href="https://learn.microsoft.com/azure/migrate/how-to-create-group-machine-dependencies-agentless" target="_blank" rel="noopener">Analyze server dependencies (agentless)</a>. Dependency data reflects only what was observed during the collection window, so review rules before applying them. Generated rules allow TCP unless the source data says otherwise.</p>
+
+</div>
+</main>
+
+<footer><div class="wrap"><span>© 2026 Landingzone.in</span><a href="./">Back to landingzone.in</a></div></footer>
+
+<script>
+(function(){
+var SAMPLE='Timeslot,Source server name,Source application,Source process,Destination server name,Destination IP,Destination application,Destination process,Destination port\n'+
+'2026-10-20 00:00,web01,IIS,w3wp.exe,app01,10.20.2.21,OrderService,java,8443\n'+
+'2026-10-20 06:00,web01,IIS,w3wp.exe,app01,10.20.2.21,OrderService,java,8443\n'+
+'2026-10-20 00:00,web02,IIS,w3wp.exe,app01,10.20.2.21,OrderService,java,8443\n'+
+'2026-10-20 00:00,web02,IIS,w3wp.exe,app02,10.20.2.22,OrderService,java,8443\n'+
+'2026-10-20 00:00,app01,OrderService,java,sql01,10.20.3.31,SQL Server,sqlservr.exe,1433\n'+
+'2026-10-20 06:00,app02,OrderService,java,sql01,10.20.3.31,SQL Server,sqlservr.exe,1433\n'+
+'2026-10-20 00:00,app01,OrderService,java,file01,10.20.4.41,File Server,System,445\n'+
+'2026-10-20 00:00,app01,OrderService,java,dc01,10.20.0.10,Active Directory,lsass.exe,389\n'+
+'2026-10-20 00:00,web01,IIS,w3wp.exe,dc01,10.20.0.10,Active Directory,lsass.exe,88\n'+
+'2026-10-20 00:00,sql01,SQL Server,sqlservr.exe,dc01,10.20.0.10,DNS Server,dns.exe,53\n'+
+'2026-10-20 00:00,mon01,Zabbix,zabbix_server,sql01,10.20.3.31,Zabbix agent,zabbix_agentd,10050\n'+
+'2026-10-20 00:00,app02,OrderService,java,,52.140.10.5,,,443\n';
+var SAMPLE_SRV={web01:['10.20.1.11','1','10.100.1.0/24'],web02:['10.20.1.12','1','10.100.1.0/24'],app01:['','1','10.100.2.0/24'],app02:['','1','10.100.2.0/24'],sql01:['','2','10.100.3.0/24'],file01:['','2','10.100.3.0/24'],dc01:['','onprem',''],mon01:['10.20.9.5','onprem','']};
+var INFRA={'53':1,'88':1,'389':1,'636':1,'464':1,'123':1,'3268':1,'3269':1};
+var flows={};   // key -> {src,dst,port,proto,sp:{},dp:{},n}
+var servers={}; // name -> {ip,wave,subnet}
+var order=[];
+
+function $(id){return document.getElementById(id)}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function say(id,t,cls){var e=$(id);e.textContent=t;e.className='msg '+(cls||'')}
+function norm(h){return h.toLowerCase().replace(/[^a-z0-9]/g,'')}
+function isIp(s){return /^\d{1,3}(\.\d{1,3}){3}$/.test(s)}
+
+function parseCSV(text){
+  var rows=[],row=[],f='',q=false;text=text.replace(/^﻿/,'');
+  for(var i=0;i<text.length;i++){var c=text[i];
+    if(q){if(c==='"'){if(text[i+1]==='"'){f+='"';i++}else q=false}else f+=c}
+    else if(c==='"')q=true;else if(c===','||c==='\t'||c===';'&&false){row.push(f);f=''}
+    else if(c==='\n'||c==='\r'){if(c==='\r'&&text[i+1]==='\n')i++;row.push(f);rows.push(row);row=[];f=''}
+    else f+=c}
+  if(f!==''||row.length){row.push(f);rows.push(row)}
+  return rows.filter(function(r){return r.some(function(x){return x.trim()!==''})});
+}
+
+function ensure(name,ip){
+  if(!name)return;
+  if(!servers[name]){servers[name]={ip:ip||'',wave:'1',subnet:''};order.push(name)}
+  else if(ip&&!servers[name].ip)servers[name].ip=ip;
+}
+function addFlow(src,dst,port,proto,sp,dp,n){
+  port=String(port||'').trim();if(!src||!dst||!port)return false;proto=(proto||'TCP').toUpperCase();
+  if(src===dst)return false;
+  var k=src+'|'+dst+'|'+port+'|'+proto;var f=flows[k];
+  if(!f)f=flows[k]={src:src,dst:dst,port:port,proto:proto,sp:{},dp:{},n:0};
+  if(sp)f.sp[sp]=1;if(dp)f.dp[dp]=1;f.n+=n||1;return true;
+}
+
+function loadTable(text){
+  var rows=parseCSV(text);if(rows.length<2)throw new Error('No data rows found. Include the header line.');
+  var h=rows[0].map(norm),ix=function(){for(var i=0;i<arguments.length;i++){var j=h.indexOf(arguments[i]);if(j>=0)return j}return -1};
+  var sN=ix('sourceservername','source','src','sourcename','sourceserver'),sI=ix('sourceip','srcip','sourceaddress'),
+      dN=ix('destinationservername','destination','dst','dest','destinationname','destinationserver'),dI=ix('destinationip','dstip','destip','destinationaddress'),
+      pt=ix('destinationport','port','dstport','destport'),pr=ix('protocol','proto'),
+      sP=ix('sourceprocess','sourceapplication'),dP=ix('destinationprocess','destinationapplication');
+  if((sN<0&&sI<0)||(dN<0&&dI<0)||pt<0)throw new Error('Could not find source, destination and port columns. Check the header line.');
+  var added=0,skipped=0;
+  for(var r=1;r<rows.length;r++){var x=rows[r],g=function(i){return i>=0&&x[i]!=null?x[i].trim():''};
+    var sn=g(sN),si=g(sI),dn=g(dN),di=g(dI);
+    var s=sn||si,d=dn||di;if(isIp(sn)&&!si)si=sn;if(isIp(dn)&&!di)di=dn;
+    if(dn&&!isIp(dn))ensure(dn,di);if(sn&&!isIp(sn))ensure(sn,si);
+    if(s&&isIp(s)&&!sn)ensure(s,s);
+    if(addFlow(s,d,g(pt),g(pr),g(sP),g(dP)))added++;else skipped++;
+  }
+  return [added,skipped];
+}
+
+function loadNetstat(name,text){
+  if(!name)throw new Error('Enter the server name for this output.');
+  var lines=text.split(/\r?\n/),listen={},est=[],me='';
+  var ep=/(\[?[0-9a-fA-F:.]+\]?|\*)[:.](\d+|\*)$/;
+  lines.forEach(function(l){
+    var t=l.trim().split(/\s+/);if(t.length<3)return;
+    var st=t.filter(function(x){return /^(LISTEN|LISTENING|ESTABLISHED|ESTAB)$/i.test(x)})[0];if(!st)return;
+    var eps=t.filter(function(x){return /[:.]\d+$/.test(x)&&/\d/.test(x)&&x.indexOf(':')>=0||/^\*:\d+$/.test(x)});
+    if(eps.length<1)return;
+    var split=function(e){var m=e.match(/^(.*)[:.](\d+)$/);return m?{ip:m[1].replace(/^\[|\]$/g,''),port:m[2]}:null};
+    var a=split(eps[0]);if(!a)return;
+    if(/^LISTEN/i.test(st)){listen[a.port]=1;return}
+    var b=eps[1]&&split(eps[1]);if(!b)return;est.push([a,b]);
+  });
+  var lb=function(ip){return /^(127\.|::1$|0\.0\.0\.0$|::$)/.test(ip)||ip.indexOf('::ffff:127.')===0};
+  var n=0;ensure(name,'');
+  est.forEach(function(p){var a=p[0],b=p[1];if(lb(b.ip))return;
+    var aip=a.ip.replace(/^::ffff:/,''),bip=b.ip.replace(/^::ffff:/,'');
+    if(!servers[name].ip&&!lb(aip))servers[name].ip=aip;
+    var peer=peerName(bip);
+    if(listen[a.port]){if(addFlow(peer,name,a.port,'TCP'))n++}
+    else{if(addFlow(name,peer,b.port,'TCP'))n++}
+  });
+  if(!est.length)throw new Error('No ESTABLISHED connections found in the output.');
+  return n;
+}
+function peerName(ip){for(var k in servers)if(servers[k].ip===ip)return k;return ip}
+
+// resolve IP-named endpoints to server names once IPs are known
+function resolve(){
+  var byIp={};order.forEach(function(n){var ip=servers[n].ip;if(ip&&!isIp(n))byIp[ip]=n});
+  var nf={};Object.keys(flows).forEach(function(k){var f=flows[k];var s=byIp[f.src]||f.src,d=byIp[f.dst]||f.dst;if(s===d)return;
+    var kk=s+'|'+d+'|'+f.port+'|'+f.proto;var g=nf[kk];if(!g)g=nf[kk]={src:s,dst:d,port:f.port,proto:f.proto,sp:{},dp:{},n:0};
+    Object.assign(g.sp,f.sp);Object.assign(g.dp,f.dp);g.n+=f.n});
+  flows=nf;
+  // drop IP-only server entries that now map to a named server
+  order=order.filter(function(n){if(isIp(n)&&byIp[n]){delete servers[n];return false}return true});
+}
+
+function waveLabel(w){return w==='onprem'?'On-prem':w==='retire'?'Retire':'Wave '+w}
+function status(f){
+  var s=servers[f.src],d=servers[f.dst];
+  if(!d||!s)return {k:'mute',t:'Unresolved'};
+  if(s.wave==='retire'||d.wave==='retire')return {k:'info',t:'Retiring'};
+  if(s.wave==='onprem'&&d.wave==='onprem')return {k:'mute',t:'Stays on-prem'};
+  if(s.wave==='onprem'||d.wave==='onprem')return {k:'warn',t:'To on-prem'};
+  if(s.wave!==d.wave)return {k:'risk',t:'Cross-wave'};
+  return {k:'ok',t:'Same wave'};
+}
+function visible(){
+  var hu=$('hide-unres').checked,hi=$('hide-infra').checked;
+  return Object.keys(flows).map(function(k){return flows[k]}).filter(function(f){
+    if(hu&&!servers[f.dst])return false;if(hi&&INFRA[f.port])return false;return true;
+  }).sort(function(a,b){var r={risk:0,warn:1,ok:2,info:3,mute:4};return r[status(a).k]-r[status(b).k]||a.dst.localeCompare(b.dst)||(+a.port)-(+b.port)});
+}
+// address used in Azure rules: target subnet if migrating and known, else current IP
+function addr(n){var s=servers[n];if(!s)return isIp(n)?n:n;
+  if(s.wave!=='onprem'&&s.subnet)return s.subnet.trim();return s.ip||('<'+n+'-ip>')}
+function nsgName(cidr){return 'nsg-'+cidr.replace(/[./]/g,'-')}
+
+function rules(vis){
+  var nsg={},afw={};
+  vis.forEach(function(f){
+    var d=servers[f.dst],s=servers[f.src];if(!d||d.wave==='retire'||(s&&s.wave==='retire'))return;
+    if(d.wave==='onprem'&&(!s||s.wave==='onprem'))return;
+    var dst=d.wave!=='onprem'&&d.subnet?d.subnet.trim():'';var srcA=addr(f.src);
+    if(dst){
+      if(s&&s.subnet&&s.subnet.trim()===dst&&s.wave!=='onprem')srcA=dst; // intra-subnet
+      var k=dst+'|'+f.port+'|'+f.proto;var r=nsg[k];if(!r)r=nsg[k]={nsg:nsgName(dst),dst:dst,port:f.port,proto:f.proto,src:{},dn:{}};
+      r.src[srcA]=1;r.dn[f.dst]=1;
+    }
+    var dA=addr(f.dst);
+    if(srcA!==dA){var k2=dA+'|'+f.port+'|'+f.proto;var a=afw[k2];if(!a)a=afw[k2]={dst:dA,port:f.port,proto:f.proto,src:{},dn:f.dst};a.src[srcA]=1}
+  });
+  var byNsg={};Object.keys(nsg).sort().forEach(function(k){var r=nsg[k];(byNsg[r.nsg]=byNsg[r.nsg]||[]).push(r)});
+  var out=[];Object.keys(byNsg).forEach(function(n){byNsg[n].sort(function(a,b){return (+a.port)-(+b.port)}).forEach(function(r,i){
+    r.pri=100+i*10;r.name=('Allow-'+Object.keys(r.dn).join('-')+'-'+r.proto+'-'+r.port).replace(/[^A-Za-z0-9_.-]/g,'').slice(0,80);out.push(r)})});
+  var fw=Object.keys(afw).sort().map(function(k,i){var a=afw[k];a.name=('allow-'+a.dn+'-'+a.port).replace(/[^A-Za-z0-9_.-]/g,'').slice(0,80);return a});
+  return {nsg:out,afw:fw};
+}
+
+var last={vis:[],r:{nsg:[],afw:[]}};
+function renderServers(){
+  var cnt={};Object.keys(flows).forEach(function(k){var f=flows[k];cnt[f.src]=(cnt[f.src]||0)+1;cnt[f.dst]=(cnt[f.dst]||0)+1});
+  if(!order.length){$('servers').innerHTML='<tr><td colspan="5" class="empty">Load data in step 1 to list servers.</td></tr>';return}
+  var opts=['1','2','3','4','5','onprem','retire'];
+  $('servers').innerHTML=order.map(function(n,i){var s=servers[n];
+    return '<tr data-n="'+esc(n)+'"><td class="m"><b>'+esc(n)+'</b></td><td><input type="text" id="ip-'+i+'" data-f="ip" aria-label="Current IP of '+esc(n)+'" value="'+esc(s.ip)+'" placeholder="10.x.x.x"></td><td><select id="wave-'+i+'" data-f="wave" aria-label="Wave for '+esc(n)+'">'+opts.map(function(o){return '<option value="'+o+'"'+(s.wave===o?' selected':'')+'>'+waveLabel(o)+'</option>'}).join('')+'</select></td><td><input type="text" id="sub-'+i+'" data-f="subnet" aria-label="Target subnet for '+esc(n)+'" value="'+esc(s.subnet)+'" placeholder="10.100.1.0/24"></td><td class="num">'+(cnt[n]||0)+'</td></tr>'}).join('');
+}
+function render(){
+  var vis=visible(),r=rules(vis);last={vis:vis,r:r};
+  var all=Object.keys(flows).map(function(k){return flows[k]});
+  var c={risk:0,warn:0,mute:0};all.forEach(function(f){var s=status(f);if(c[s.k]!=null)c[s.k]++});
+  var ports={};all.forEach(function(f){ports[f.port]=1});
+  $('kpis').innerHTML='<div class="kpi"><b>'+order.length+'</b><span>servers</span></div><div class="kpi"><b>'+all.length+'</b><span>unique flows</span></div><div class="kpi"><b>'+Object.keys(ports).length+'</b><span>distinct ports</span></div><div class="kpi'+(c.risk?' risk':'')+'"><b>'+c.risk+'</b><span>cross-wave flows</span></div><div class="kpi'+(c.warn?' warn':'')+'"><b>'+c.warn+'</b><span>flows to on-prem</span></div><div class="kpi"><b>'+r.nsg.length+'</b><span>NSG rules</span></div>';
+  var w=function(n){return servers[n]?waveLabel(servers[n].wave):'—'};
+  $('flows').innerHTML=vis.length?vis.map(function(f){var s=status(f);
+    return '<tr><td class="m">'+esc(f.src)+'<span class="proc">'+esc(Object.keys(f.sp).join(', '))+'</span></td><td class="m">'+esc(f.dst)+(servers[f.dst]&&servers[f.dst].ip?' <span class="proc">'+esc(servers[f.dst].ip)+'</span>':'')+'<span class="proc">'+esc(Object.keys(f.dp).join(', '))+'</span></td><td class="num">'+esc(f.port)+'/'+esc(f.proto)+'</td><td class="num">'+f.n+'</td><td class="num">'+esc(w(f.src))+' → '+esc(w(f.dst))+'</td><td><span class="tag '+s.k+'">'+s.t+'</span></td></tr>'}).join(''):'<tr><td colspan="6" class="empty">No flows to show.</td></tr>';
+  $('nsg').innerHTML=r.nsg.length?r.nsg.map(function(x){return '<tr><td class="m">'+esc(x.nsg)+'</td><td class="num">'+x.pri+'</td><td class="m">'+esc(x.name)+'</td><td class="m">'+esc(Object.keys(x.src).join(', '))+'</td><td class="m">'+esc(x.dst)+'</td><td class="num">'+esc(x.port)+'</td><td class="num">'+esc(x.proto)+'</td></tr>'}).join(''):'<tr><td colspan="7" class="empty">Add target subnets in step 2 to generate NSG rules.</td></tr>';
+  $('afw').innerHTML=r.afw.length?r.afw.map(function(x){return '<tr><td class="m">'+esc(x.name)+'</td><td class="m">'+esc(Object.keys(x.src).join(', '))+'</td><td class="m">'+esc(x.dst)+'</td><td class="num">'+esc(x.port)+'</td><td class="num">'+esc(x.proto)+'</td></tr>'}).join(''):'<tr><td colspan="5" class="empty">No cross-subnet or hybrid flows to migrated servers.</td></tr>';
+  $('cli').textContent=r.nsg.length?r.nsg.map(function(x){return 'az network nsg rule create --resource-group <resource-group> --nsg-name '+x.nsg+' --name '+x.name+' --priority '+x.pri+' --direction Inbound --access Allow --protocol '+(x.proto==='UDP'?'Udp':x.proto==='ANY'?'*':'Tcp')+' --source-address-prefixes '+Object.keys(x.src).join(' ')+' --source-port-ranges "*" --destination-address-prefixes '+x.dst+' --destination-port-ranges '+x.port}).join('\n'):'# Add target subnets in step 2 to generate commands.';
+}
+function all(){resolve();renderServers();render()}
+
+function tsv(rows,sep){var q=function(x){x=String(x);return sep===','?'"'+x.replace(/"/g,'""')+'"':x.replace(/[\t\n]/g,' ')};return rows.map(function(r){return r.map(q).join(sep)}).join('\n')}
+function flowRows(){return [['Source','Source process','Destination','Destination IP','Destination process','Port','Protocol','Seen','Source wave','Destination wave','Status']].concat(last.vis.map(function(f){var s=servers[f.src],d=servers[f.dst];return [f.src,Object.keys(f.sp).join(' / '),f.dst,d?d.ip:'',Object.keys(f.dp).join(' / '),f.port,f.proto,f.n,s?waveLabel(s.wave):'',d?waveLabel(d.wave):'',status(f).t]}))}
+function nsgRows(){return [['NSG','Priority','Name','Direction','Access','Source','Destination','Port','Protocol']].concat(last.r.nsg.map(function(x){return [x.nsg,x.pri,x.name,'Inbound','Allow',Object.keys(x.src).join(' '),x.dst,x.port,x.proto]}))}
+function afwRows(){return [['Rule','Source addresses','Destination addresses','Destination port','Protocol']].concat(last.r.afw.map(function(x){return [x.name,Object.keys(x.src).join(' '),x.dst,x.port,x.proto]}))}
+function copy(t,label){try{navigator.clipboard.writeText(t).then(function(){say('msg2','Copied '+label+'.','ok')},function(){fb(t,label)})}catch(e){fb(t,label)}}
+function fb(t,label){var ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();var ok=false;try{ok=document.execCommand('copy')}catch(e){}ta.remove();say('msg2',ok?'Copied '+label+'.':'Copy was blocked. Use Download all as CSV.',ok?'ok':'err')}
+$('copy-flows').onclick=function(){copy(tsv(flowRows(),'\t'),'flows')};
+$('copy-nsg').onclick=function(){copy(tsv(nsgRows(),'\t'),'NSG rules')};
+$('copy-afw').onclick=function(){copy(tsv(afwRows(),'\t'),'firewall rules')};
+$('copy-cli').onclick=function(){copy($('cli').textContent,'commands')};
+$('dl').onclick=function(){
+  var t='FLOWS\n'+tsv(flowRows(),',')+'\n\nNSG RULES\n'+tsv(nsgRows(),',')+'\n\nAZURE FIREWALL RULES\n'+tsv(afwRows(),',');
+  try{var b=new Blob(['﻿'+t],{type:'text/csv;charset=utf-8'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='migration-traffic-rules.csv';document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},500);say('msg2','CSV downloaded.','ok')}catch(e){say('msg2','Download is not available here. Use the copy buttons.','err')}
+};
+
+$('servers').addEventListener('input',function(e){var t=e.target,tr=t.closest('tr');if(!tr||!t.dataset.f)return;var s=servers[tr.dataset.n];if(!s)return;s[t.dataset.f]=t.value.trim();if(t.dataset.f==='ip')return;render()});
+$('servers').addEventListener('change',function(e){var t=e.target;if(t.dataset&&t.dataset.f==='ip')all()});
+$('hide-unres').onchange=render;$('hide-infra').onchange=render;
+
+document.querySelectorAll('.tab').forEach(function(b){b.onclick=function(){document.querySelectorAll('.tab').forEach(function(x){x.setAttribute('aria-selected',x===b?'true':'false');$(x.dataset.p).hidden=x!==b})}});
+function readFile(input,cb){var f=input.files&&input.files[0];if(!f){say('msg','Choose a file first.','err');return}if(f.size>25*1024*1024){say('msg','That file is over 25 MB. Export a shorter time range.','err');return}var r=new FileReader();r.onload=function(){cb(String(r.result))};r.onerror=function(){say('msg','Could not read the file.','err')};r.readAsText(f)}
+function fresh(){flows={};servers={};order=[]}
+function runTable(text){try{fresh();var res=loadTable(text);all();say('msg','Loaded '+res[0]+' connection rows'+(res[1]?' ('+res[1]+' skipped without source, destination or port)':'')+'. '+Object.keys(flows).length+' unique flows.','ok')}catch(e){say('msg',e.message,'err')}}
+$('load-am').onclick=function(){readFile($('file-am'),runTable)};
+$('load-csv').onclick=function(){var t=$('txt-csv').value;if(t.trim())runTable(t);else readFile($('file-csv'),runTable)};
+$('load-ns').onclick=function(){try{var name=$('ns-name').value.trim();var n=loadNetstat(name,$('txt-ns').value);all();say('msg','Added '+n+' flows from '+name+'. Paste the next server, or continue to step 2.','ok');$('txt-ns').value='';$('ns-name').value=''}catch(e){say('msg',e.message,'err')}};
+$('clear').onclick=function(){fresh();all();say('msg','Cleared.','ok')};
+function sample(){fresh();loadTable(SAMPLE);Object.keys(SAMPLE_SRV).forEach(function(n){if(servers[n]){var v=SAMPLE_SRV[n];if(v[0])servers[n].ip=v[0];servers[n].wave=v[1];servers[n].subnet=v[2]}});all();say('msg','Example loaded: a three-tier order system split over two waves. Replace it with your own data.','ok')}
+$('sample').onclick=sample;
+sample();
+})();
+</script>
+</body>
+</html>
