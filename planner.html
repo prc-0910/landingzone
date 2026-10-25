@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="canonical" href="https://landingzone.in/planner.html">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://landingzone.in/planner.html">
+<meta property="og:title" content="Azure Migrate Firewall Rule Planner – Landingzone.in">
+<meta property="og:description" content="Free tool: get every port, protocol, source, destination and URL your network team must allow for an Azure Migrate project.">
+<meta property="og:image" content="https://landingzone.in/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<title>Migration Firewall Planner</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Free Azure Migrate firewall rule planner: pick your migration scenario and get every port, protocol, source, destination and URL your network team must allow.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;700&family=Public+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: tool sheet — scenario panel on the left, generated rule sheet on the right; stacks on phones */
+:root{
+  --paper:#eef2ec; --sheet:#fbfcfa; --ink:#17251e; --muted:#566a5f; --line:#cfd9d1;
+  --accent:#1d6a49; --mark:#8a5d10; --chip:#e3ebe5;
+  --in:#1d5f8a; --out:#1d6a49; --dns:#7a4fa0;
+  --display:"Familjen Grotesk",ui-sans-serif,system-ui,sans-serif;
+  --body:"Public Sans",ui-sans-serif,system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#101914; --sheet:#16221c; --ink:#e4ece6; --muted:#98ab9f; --line:#27372e;
+  --accent:#5cc493; --mark:#e0a94a; --chip:#1f2e26; --in:#7cbbe6; --out:#5cc493; --dns:#c3a3e6; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#101914; --sheet:#16221c; --ink:#e4ece6; --muted:#98ab9f; --line:#27372e;
+  --accent:#5cc493; --mark:#e0a94a; --chip:#1f2e26; --in:#7cbbe6; --out:#5cc493; --dns:#c3a3e6; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font:400 1rem/1.6 var(--body)}
+a{color:var(--accent);text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--mark);outline-offset:2px;border-radius:2px}
+.wrap{max-width:1240px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+header.top{border-bottom:1px solid var(--line)}
+header.top .wrap{display:flex;justify-content:space-between;align-items:center;gap:16px;padding-block:12px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:10px;font:700 1.1rem var(--display);color:var(--ink);text-decoration:none}
+.logo small{font:500 .8rem var(--mono);color:var(--muted)}
+.cta{color:var(--sheet);background:var(--accent);padding:8px 14px;border-radius:3px;text-decoration:none;font-weight:600;font-size:.95rem}
+
+.intro .wrap{padding-block:40px 24px}
+.eyebrow{font:500 .78rem var(--mono);color:var(--mark);letter-spacing:.08em;text-transform:uppercase}
+h1{font:700 clamp(2rem,4.6vw,3.1rem)/1.05 var(--display);letter-spacing:-.025em;margin:10px 0 12px;max-width:22ch;text-wrap:balance}
+.lede{color:var(--muted);max-width:66ch;margin:0}
+.badges{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:16px;font:500 .8rem var(--mono);color:var(--muted)}
+.badges span::before{content:"✓ ";color:var(--accent)}
+
+.tool .wrap{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:24px;align-items:start;padding-block:8px 56px}
+@media (max-width:900px){.tool .wrap{grid-template-columns:minmax(0,1fr)}}
+
+.panel{background:var(--sheet);border:1px solid var(--line);border-radius:6px;padding:20px;display:grid;gap:22px}
+fieldset{border:0;margin:0;padding:0;display:grid;gap:8px;min-width:0}
+legend{font:700 1rem var(--display);margin-bottom:6px;padding:0}
+.hint{font-size:.85rem;color:var(--muted);margin:-2px 0 4px}
+.opt{display:flex;gap:10px;align-items:flex-start;padding:9px 11px;border:1px solid var(--line);border-radius:4px;cursor:pointer;background:var(--paper)}
+.opt:has(input:checked){border-color:var(--accent);background:var(--chip)}
+.opt input{margin-top:4px;accent-color:var(--accent)}
+.opt b{display:block;font-weight:600;font-size:.95rem}
+.opt span{font-size:.82rem;color:var(--muted)}
+.opt.off{opacity:.45;cursor:not-allowed}
+.ips{display:grid;gap:10px}
+.ips label{display:grid;gap:3px;font-size:.85rem;font-weight:600}
+.ips input{font:400 .9rem var(--mono);padding:8px 10px;border:1px solid var(--line);border-radius:4px;background:var(--paper);color:var(--ink);width:100%}
+.ips label[hidden]{display:none}
+
+.out{min-width:0;display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
+.summary{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.counts{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+#groups{display:grid;gap:16px}
+.pill{white-space:nowrap;font:500 .8rem var(--mono);padding:5px 10px;border-radius:20px;border:1px solid var(--line);background:var(--sheet);font-variant-numeric:tabular-nums}
+.pill b{font-weight:500}
+.pill.in b{color:var(--in)} .pill.out b{color:var(--out)} .pill.dns b{color:var(--dns)}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn{font:600 .9rem var(--body);padding:9px 14px;border-radius:3px;border:1px solid var(--accent);background:var(--accent);color:var(--sheet);cursor:pointer}
+.btn.ghost{background:transparent;color:var(--accent)}
+.status{font:500 .8rem var(--mono);color:var(--accent);min-height:1.2em}
+
+.group{background:var(--sheet);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.group h2{font:700 1.05rem var(--display);margin:0;padding:14px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.group h2 small{font:500 .78rem var(--mono);color:var(--muted)}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:760px;font-size:.88rem}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+th{font:500 .72rem var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.06em;background:var(--paper)}
+td.n{font-family:var(--mono);color:var(--muted);font-variant-numeric:tabular-nums;width:44px}
+td.ep{font-family:var(--mono);font-size:.82rem;overflow-wrap:anywhere;min-width:130px;max-width:260px}
+td.port{font-family:var(--mono);font-weight:500;white-space:nowrap}
+.dir{display:inline-block;font:500 .68rem var(--mono);padding:1px 6px;border-radius:3px;margin-left:6px;border:1px solid currentColor}
+.dir.in{color:var(--in)} .dir.out{color:var(--out)} .dir.dns{color:var(--dns)}
+td.ref a{font:500 .78rem var(--mono);white-space:nowrap}
+.note{font-size:.82rem;color:var(--muted);display:block;margin-top:2px}
+.empty{padding:28px;text-align:center;color:var(--muted)}
+
+.foot{background:var(--sheet);border:1px solid var(--line);border-radius:6px;padding:18px 20px;display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;align-items:center}
+.foot p{margin:0;max-width:60ch}
+.disclaimer{font-size:.82rem;color:var(--muted)}
+.sources{font-size:.85rem;color:var(--muted)}
+.sources ol{margin:6px 0 0;padding-left:20px;display:grid;gap:2px}
+
+footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;padding-block:24px;font:400 .8rem var(--mono);color:var(--muted);border-top:1px solid var(--line)}
+</style>
+<style>body{margin:0}[hidden]{display:none!important}</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <a class="logo" href="./">
+      <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><circle cx="13" cy="13" r="12" fill="none" stroke="var(--accent)" stroke-width="2"/><path d="M8 7v12M18 7v12M8 13h10" stroke="var(--accent)" stroke-width="2.4" fill="none"/></svg>
+      Landingzone<small>.in</small>
+    </a>
+    <a class="cta" href="https://calendly.com/hello-landingzone/30min" target="_blank" rel="noopener">Book a free call</a>
+  </div>
+</header>
+
+<section class="intro">
+  <div class="wrap">
+    <div class="eyebrow">Free tool · Azure Migrate</div>
+    <h1>Migration firewall rule planner</h1>
+    <p class="lede">Choose how you're discovering and migrating servers to Azure. You get the ports, protocols, sources, destinations and URLs your network team needs to approve, ready to paste into a change request.</p>
+    <div class="badges"><span>Built from Microsoft Learn</span><span>Runs in your browser</span><span>No data leaves your machine</span></div>
+  </div>
+</section>
+
+<section class="tool">
+  <div class="wrap">
+    <form class="panel" id="f" autocomplete="off">
+      <fieldset>
+        <legend>1. Source environment</legend>
+        <label class="opt"><input type="radio" name="src" value="vmware" id="src-vmware" checked><div><b>VMware vSphere</b><span>vCenter Server and ESXi hosts</span></div></label>
+        <label class="opt"><input type="radio" name="src" value="hyperv" id="src-hyperv"><div><b>Hyper-V</b><span>Hyper-V hosts or clusters</span></div></label>
+        <label class="opt"><input type="radio" name="src" value="physical" id="src-physical"><div><b>Physical or other cloud</b><span>Physical servers, AWS, GCP, other VMs</span></div></label>
+      </fieldset>
+
+      <fieldset>
+        <legend>2. What you're doing</legend>
+        <label class="opt"><input type="checkbox" name="disc" id="disc" checked><div><b>Discovery &amp; assessment</b><span>Azure Migrate appliance collects metadata and performance data</span></div></label>
+        <label class="opt"><input type="checkbox" name="inv" id="inv"><div><b>Software inventory &amp; dependencies</b><span>Agentless guest discovery (apps, roles, web apps)</span></div></label>
+        <label class="opt" id="opt-dom"><input type="checkbox" name="dom" id="dom"><div><b>Use domain credentials</b><span>Windows guests discovered with domain accounts (VMware)</span></div></label>
+      </fieldset>
+
+      <fieldset>
+        <legend>3. Migration method</legend>
+        <label class="opt"><input type="radio" name="mig" value="none" id="mig-none"><div><b>Not migrating yet</b><span>Assessment only</span></div></label>
+        <label class="opt" id="opt-agentless"><input type="radio" name="mig" value="agentless" id="mig-agentless" checked><div><b>Agentless replication</b><span>VMware or Hyper-V, no agent in the VMs</span></div></label>
+        <label class="opt"><input type="radio" name="mig" value="agent" id="mig-agent"><div><b>Agent-based replication</b><span>Mobility service + replication appliance</span></div></label>
+      </fieldset>
+
+      <fieldset>
+        <legend>4. Connectivity to Azure</legend>
+        <label class="opt"><input type="radio" name="net" value="public" id="net-public" checked><div><b>Internet (public endpoints)</b><span>Direct or through an HTTP proxy</span></div></label>
+        <label class="opt"><input type="radio" name="net" value="private" id="net-private"><div><b>Private endpoints</b><span>Over ExpressRoute private peering or site-to-site VPN</span></div></label>
+      </fieldset>
+
+      <fieldset>
+        <legend>5. Your IPs (optional)</legend>
+        <p class="hint">Fill these in to get rules with your real addresses. Leave blank to keep placeholders.</p>
+        <div class="ips">
+          <label for="ip-app">Azure Migrate appliance<input id="ip-app" placeholder="10.10.1.20"></label>
+          <label for="ip-admin" data-k="admin">Admin workstations<input id="ip-admin" placeholder="10.10.50.0/24"></label>
+          <label for="ip-vc" data-k="vc">vCenter Server<input id="ip-vc" placeholder="10.10.1.5"></label>
+          <label for="ip-esx" data-k="esx">ESXi hosts<input id="ip-esx" placeholder="10.10.2.0/24"></label>
+          <label for="ip-hv" data-k="hv">Hyper-V hosts / cluster<input id="ip-hv" placeholder="10.10.3.0/24"></label>
+          <label for="ip-srv">Servers to discover / migrate<input id="ip-srv" placeholder="10.20.0.0/16"></label>
+          <label for="ip-rep" data-k="rep">Replication appliance<input id="ip-rep" placeholder="10.10.1.30"></label>
+          <label for="ip-dc" data-k="dc">Domain controllers<input id="ip-dc" placeholder="10.10.0.10, 10.10.0.11"></label>
+          <label for="ip-pe" data-k="pe">Private endpoint subnet (Azure)<input id="ip-pe" placeholder="10.100.5.0/27"></label>
+        </div>
+      </fieldset>
+    </form>
+
+    <div class="out">
+      <div class="summary">
+        <div class="counts" id="counts"></div>
+        <div class="actions">
+          <button class="btn" type="button" id="copy">Copy for Excel</button>
+          <button class="btn ghost" type="button" id="csv">Download CSV</button>
+        </div>
+      </div>
+      <div class="status" id="status" role="status" aria-live="polite"></div>
+      <div id="groups"></div>
+
+      <div class="foot">
+        <p><b>Need this turned into a full network design?</b> I can review your firewall request, plan private endpoints and DNS, and run the migration with you.</p>
+        <a class="btn" href="https://calendly.com/hello-landingzone/30min" target="_blank" rel="noopener" style="text-decoration:none">Book a free 30-minute call</a>
+      </div>
+
+      <div class="sources">
+        <b>Sources (Microsoft Learn)</b>
+        <ol id="srcs"></ol>
+        <p class="disclaimer">Requirements change over time. Check the linked Microsoft pages before submitting a change request. Ports for application traffic after migration (for example SQL or web ports between your apps) are not included.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer><div class="wrap"><span>© 2026 Landingzone.in</span><a href="./">Back to landingzone.in</a></div></footer>
+
+<script>
+(function(){
+var S={
+  appliance:{t:'Azure Migrate appliance',u:'https://learn.microsoft.com/azure/migrate/migrate-appliance'},
+  vmw:{t:'Support matrix for VMware discovery',u:'https://learn.microsoft.com/azure/migrate/migrate-support-matrix-vmware'},
+  vmwmig:{t:'Support matrix for VMware migration',u:'https://learn.microsoft.com/azure/migrate/migrate-support-matrix-vmware-migration'},
+  hv:{t:'Support matrix for Hyper-V assessment',u:'https://learn.microsoft.com/azure/migrate/migrate-support-matrix-hyper-v'},
+  hvmig:{t:'Support matrix for Hyper-V migration',u:'https://learn.microsoft.com/azure/migrate/migrate-support-matrix-hyper-v-migration'},
+  phy:{t:'Support matrix for physical discovery',u:'https://learn.microsoft.com/azure/migrate/migrate-support-matrix-physical'},
+  rep:{t:'Replication appliance',u:'https://learn.microsoft.com/azure/migrate/migrate-replication-appliance'},
+  pe:{t:'Use Azure Migrate with private endpoints',u:'https://learn.microsoft.com/azure/migrate/how-to-use-azure-migrate-with-private-endpoints'},
+  pemig:{t:'Migrate servers using Private Link',u:'https://learn.microsoft.com/azure/migrate/migrate-servers-to-azure-using-private-link'}
+};
+var GROUPS=[
+  {k:'mgmt',t:'Access to the appliances',d:'Inbound, from admin workstations'},
+  {k:'onprem',t:'On-premises east-west',d:'Internal firewalls and host firewalls'},
+  {k:'azure',t:'Outbound to Azure',d:'Internet edge or proxy, TCP 443'},
+  {k:'dns',t:'Private endpoint DNS & routing',d:'Name resolution and private IP reachability'}
+];
+var ENTRA='*.windows.net, *.msftauth.net, *.msauth.net, *.microsoft.com, *.live.com, *.office.com, *.microsoftonline.com, *.microsoftonline-p.com, *.microsoftazuread-sso.com, *.cloud.microsoft';
+var ENTRA_PL='login.windows.net, login.microsoftonline.com, *.msftauth.net, *.msauth.net, *.microsoftonline-p.com, *.microsoftazuread-sso.com, developer.microsoft.com, graph.microsoft.com, *.live.com, *.office.com';
+
+function v(id){var e=document.getElementById(id);return e?e.value.trim():''}
+function radio(n){var e=document.querySelector('input[name="'+n+'"]:checked');return e?e.value:''}
+function chk(id){var e=document.getElementById(id);return !!(e&&e.checked&&!e.disabled)}
+
+function build(){
+  var src=radio('src'),disc=chk('disc'),inv=chk('inv'),dom=chk('dom'),mig=radio('mig'),net=radio('net');
+  var ip={app:v('ip-app')||'<appliance-ip>',admin:v('ip-admin')||'<admin-workstations>',vc:v('ip-vc')||'<vcenter-ip>',
+    esx:v('ip-esx')||'<esxi-hosts>',hv:v('ip-hv')||'<hyper-v-hosts>',srv:v('ip-srv')||'<source-servers>',
+    rep:v('ip-rep')||'<replication-appliance-ip>',dc:v('ip-dc')||'<domain-controllers>',pe:v('ip-pe')||'<private-endpoint-subnet>'};
+  var R=[], priv=net==='private';
+  function add(g,from,to,port,proto,purpose,ref,note,dir){R.push({g:g,from:from,to:to,port:port,proto:proto,purpose:purpose,ref:ref,note:note||'',dir:dir||(g==='azure'?'out':g==='dns'?'dns':'in')})}
+  var azDest=function(urls){return priv?urls+'  →  private endpoints in '+ip.pe:urls};
+  var useApp=disc||inv||(mig==='agentless'&&src==='vmware');
+
+  if(useApp){
+    var refA=src==='vmware'?'vmw':src==='hyperv'?'hv':'phy';
+    add('mgmt',ip.admin,ip.app,'3389','TCP','Remote desktop to the Azure Migrate appliance',refA);
+    add('mgmt',ip.admin,ip.app,'44368','TCP','Appliance configuration manager (https://<appliance>:44368)',refA);
+  }
+  if(disc){
+    if(src==='vmware') add('onprem',ip.app,ip.vc,'443','TCP','Discover VMs and collect configuration and performance data (vSphere APIs)','vmw','Use the vCenter port if it is not 443.');
+    if(src==='hyperv') add('onprem',ip.app,ip.hv,'5986 (fallback 5985)','TCP','WinRM to Hyper-V hosts: metadata and performance data via CIM','hv','5985 (HTTP) is used only if HTTPS is not configured on the host.');
+    if(src==='physical'){
+      add('onprem',ip.app,ip.srv+' (Windows)','5986 (fallback 5985)','TCP','WinRM: configuration and performance metadata','phy','You can enforce HTTPS only in the appliance configuration manager.');
+      add('onprem',ip.app,ip.srv+' (Linux)','22','TCP','SSH: configuration and performance metadata','phy');
+    }
+  }
+  if(inv){
+    if(src==='vmware'){
+      add('onprem',ip.app,ip.esx,'443','TCP','Software inventory and agentless dependency analysis through VMware Tools','vmw');
+      add('onprem',ip.app,ip.srv+' (Windows)','5986 (fallback 5985)','TCP','Web app discovery on Windows servers without VMware Tools','vmw');
+      add('onprem',ip.app,ip.srv+' (Linux)','22','TCP','Java/Tomcat web app discovery on Linux servers without VMware Tools','vmw');
+      if(dom){
+        add('onprem',ip.app,ip.dc+', '+ip.srv,'88','TCP/UDP','Kerberos authentication for domain credentials','vmw');
+        add('onprem',ip.app,ip.dc+', '+ip.srv,'464','TCP/UDP','Kerberos change operations','vmw');
+        add('onprem',ip.app,ip.dc+', '+ip.srv,'135','TCP','RPC endpoint mapper','vmw');
+        add('onprem',ip.app,ip.dc,'389, 636','TCP','LDAP / LDAP over SSL','vmw');
+        add('onprem',ip.app,ip.srv,'445','TCP','SMB','vmw');
+      }
+    } else {
+      var refI=src==='hyperv'?'hv':'phy';
+      if(src==='hyperv'||!disc) add('onprem',ip.app,ip.srv+' (Windows)','5986 (fallback 5985)','TCP','WinRM: software inventory and dependency analysis','hv'===refI?'hv':'phy');
+      if(src==='hyperv'||!disc) add('onprem',ip.app,ip.srv+' (Linux)','22','TCP','SSH: software inventory and agentless dependency analysis',refI);
+    }
+  }
+  if(mig==='agentless'&&src==='vmware'){
+    add('onprem',ip.app,ip.vc,'443','TCP','Orchestrate replication: create and release snapshots, copy data','vmwmig');
+    add('onprem',ip.app,ip.esx,'902','TCP','Replicate disk data from snapshots','vmwmig');
+    add('onprem',ip.esx,ip.vc,'902','TCP','ESXi heartbeat to vCenter (normally already open)','vmwmig','',"in");
+  }
+  if(mig==='agent'){
+    add('onprem',ip.srv,ip.rep,'443','TCP','Mobility service: replication management with the replication appliance','vmwmig');
+    add('onprem',ip.srv,ip.rep,'9443','TCP','Replication data to the process server','vmwmig','The port can be changed on the process server.');
+    add('mgmt',ip.admin,ip.rep,'3389','TCP','Remote desktop to the replication appliance (management)','rep','Recommended for administration; not a replication requirement.');
+  }
+
+  // Outbound to Azure
+  if(useApp){
+    add('azure',ip.app,priv?ENTRA_PL:ENTRA,'443','TCP','Microsoft Entra ID sign-in and access control','appliance',priv?'Stays on the internet even with private endpoints.':'');
+    add('azure',ip.app,priv?'portal.azure.com':'*.portal.azure.com','443','TCP',priv?'Portal access; used for time sync checks by the configuration manager':'Azure portal','appliance',priv?'Stays on the internet even with private endpoints.':'');
+    add('azure',ip.app,azDest('management.azure.com'),'443','TCP','Resource deployment and management operations','appliance',priv?'Needs a private link for Azure Resource Manager.':'');
+    if(!priv){
+      add('azure',ip.app,'*.servicebus.windows.net','443','TCP','Communication between the appliance and Azure Migrate','appliance');
+      add('azure',ip.app,'*.discoverysrv.windowsazure.com, *.migration.windowsazure.com','443','TCP','Azure Migrate service endpoints','appliance');
+      add('azure',ip.app,'*.vault.azure.net','443','TCP','Azure Key Vault secrets','appliance');
+      add('azure',ip.app,'aka.ms/*, download.microsoft.com/download','443','TCP','Appliance updates and downloads','appliance');
+      add('azure',ip.app,'*.services.visualstudio.com','443','TCP','Appliance logs for internal monitoring','appliance');
+    } else {
+      add('azure',ip.app,'Azure Migrate project private endpoints (key vault, storage, internal resources)  →  '+ip.pe,'443','TCP','Discovery data and Azure Migrate service traffic over ExpressRoute or VPN','pe','Records are downloaded from the Azure Migrate project after "Generate key".');
+    }
+    if(mig==='agentless'&&src==='vmware'){
+      if(!priv) add('azure',ip.app,'*.hypervrecoverymanager.windowsazure.com','443','TCP','Agentless VMware migration: replication orchestration','appliance');
+      add('azure',ip.app,azDest('*.blob.core.windows.net'),'443','TCP','Agentless VMware migration: upload replicated data to storage','appliance');
+      if(priv) add('azure',ip.app,'Recovery Services vault private endpoint (*.privatelink.siterecovery.windowsazure.com)  →  '+ip.pe,'443','TCP','Replication orchestration through the vault private endpoint','pemig');
+    }
+  }
+  if(mig==='agentless'&&src==='hyperv'){
+    add('azure',ip.hv,'login.microsoftonline.com','443','TCP','Replication provider: Microsoft Entra ID sign-in','hvmig',priv?'Stays on the internet even with private endpoints.':'');
+    if(!priv) add('azure',ip.hv,'backup.windowsazure.com, *.hypervrecoverymanager.windowsazure.com','443','TCP','Replication data transfer, coordination and management','hvmig');
+    else add('azure',ip.hv,'Recovery Services vault private endpoint (*.privatelink.siterecovery.windowsazure.com)  →  '+ip.pe,'443','TCP','Replication management through the vault private endpoint','pemig');
+    add('azure',ip.hv,azDest('*.blob.core.windows.net'),'443','TCP','Upload replicated data to storage accounts','hvmig',priv?'Replication and cache storage accounts each need a blob private endpoint.':'');
+    add('azure',ip.hv,'dc.services.visualstudio.com, time.windows.com','443','TCP','App logs for monitoring; time synchronisation','hvmig');
+  }
+  if(mig==='agent'){
+    add('azure',ip.rep,priv?'login.windows.net, graph.windows.net, login.microsoftonline.com, *.msftauth.net, *.msauth.net, *.live.com, *.office.com':'Replication appliance URL list (Entra ID, Site Recovery, storage)','443','TCP','Replication appliance orchestrates replication with Azure','rep',priv?'Sign-in URLs stay on the internet even with private endpoints.':'Use the full URL table on the replication appliance page.');
+    add('azure',ip.rep,azDest('*.blob.core.windows.net'),'443','TCP','Process server sends optimised, encrypted replication data to Azure storage','vmwmig','The process server runs on the replication appliance by default.');
+    if(priv) add('azure',ip.rep,'*.siterecovery.windowsazure.com, *.prod.migration.windowsazure.com, management.azure.com  →  '+ip.pe,'443','TCP','Site Recovery, discovery and management through private link','pemig');
+  }
+
+  if(priv&&R.some(function(r){return r.g==='azure'})){
+    var hosts=[];if(useApp)hosts.push(ip.app);if(mig==='agentless'&&src==='hyperv')hosts.push(ip.hv);if(mig==='agent')hosts.push(ip.rep);
+    add('dns',hosts.join(', '),'On-premises DNS (or the hosts file on the appliance)','53','TCP/UDP','Resolve Azure Migrate, storage and vault FQDNs to private endpoint IPs','pe','Import the DNS records from the Azure Migrate project. Blob endpoints use the privatelink.blob.core.windows.net zone; the vault uses privatelink.siterecovery.windowsazure.com.');
+    add('dns',hosts.join(', '),ip.pe+' (via ExpressRoute private peering or VPN)','443','TCP','Route to the private endpoint subnet; plan up to 15 private IPs in the VNet','pe','Each extra appliance needs additional private IPs.');
+  }
+  var ord={mgmt:0,onprem:1,azure:2,dns:3};
+  return R.map(function(r,i){r.i=i;return r}).sort(function(a,b){return ord[a.g]-ord[b.g]||a.i-b.i});
+}
+
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+var lastRows=[];
+function render(){
+  // availability rules
+  var src=radio('src');
+  var al=document.getElementById('mig-agentless'),alo=document.getElementById('opt-agentless');
+  var phys=src==='physical';al.disabled=phys;alo.classList.toggle('off',phys);
+  if(phys&&al.checked)document.getElementById('mig-agent').checked=true;
+  var d=document.getElementById('dom'),dop=document.getElementById('opt-dom');
+  var domOk=src==='vmware'&&chk('inv');d.disabled=!domOk;dop.classList.toggle('off',!domOk);
+  var mig=radio('mig'),net=radio('net');
+  var show={vc:src==='vmware',esx:src==='vmware'&&(chk('inv')||mig==='agentless'),hv:src==='hyperv',rep:mig==='agent',dc:domOk&&chk('dom'),pe:net==='private',admin:true};
+  document.querySelectorAll('.ips label[data-k]').forEach(function(l){l.hidden=!show[l.dataset.k]});
+
+  var R=build();lastRows=R;var used={};
+  var html='';
+  GROUPS.forEach(function(g){
+    var rows=R.filter(function(r){return r.g===g.k});if(!rows.length)return;
+    html+='<div class="group"><h2>'+g.t+'<small>'+g.d+' · '+rows.length+' rule'+(rows.length>1?'s':'')+'</small></h2><div class="scroll"><table><thead><tr><th>#</th><th>Source</th><th>Destination</th><th>Port</th><th>Purpose</th><th>Ref</th></tr></thead><tbody>';
+    rows.forEach(function(r){
+      used[r.ref]=1;var i=R.indexOf(r)+1;
+      html+='<tr><td class="n">'+i+'</td><td class="ep">'+esc(r.from)+'</td><td class="ep">'+esc(r.to)+'</td><td class="port">'+esc(r.port)+' <span class="dir '+r.dir+'">'+esc(r.proto)+'</span></td><td>'+esc(r.purpose)+(r.note?'<span class="note">'+esc(r.note)+'</span>':'')+'</td><td class="ref"><a href="'+S[r.ref].u+'" target="_blank" rel="noopener">docs ↗</a></td></tr>';
+    });
+    html+='</tbody></table></div></div>';
+  });
+  if(!R.length)html='<div class="group"><div class="empty">Select discovery, inventory or a migration method to see the rules.</div></div>';
+  document.getElementById('groups').innerHTML=html;
+  var c={mgmt:0,onprem:0,azure:0,dns:0};R.forEach(function(r){c[r.g]++});
+  document.getElementById('counts').innerHTML='<span class="pill"><b>'+R.length+'</b> rules</span><span class="pill in"><b>'+(c.mgmt+c.onprem)+'</b> internal</span><span class="pill out"><b>'+c.azure+'</b> to Azure</span>'+(c.dns?'<span class="pill dns"><b>'+c.dns+'</b> DNS &amp; routing</span>':'');
+  document.getElementById('srcs').innerHTML=Object.keys(used).map(function(k){return '<li><a href="'+S[k].u+'" target="_blank" rel="noopener">'+S[k].t+'</a></li>'}).join('');
+}
+
+function table(sep){
+  var head=['#','Category','Source','Destination','Port','Protocol','Purpose','Notes','Reference'];
+  var q=function(x){x=String(x);return sep===','?'"'+x.replace(/"/g,'""')+'"':x.replace(/\t|\n/g,' ')};
+  var gname={};GROUPS.forEach(function(g){gname[g.k]=g.t});
+  return [head.map(q).join(sep)].concat(lastRows.map(function(r,i){return [i+1,gname[r.g],r.from,r.to,r.port,r.proto,r.purpose,r.note,S[r.ref].u].map(q).join(sep)})).join('\n');
+}
+function say(t){var s=document.getElementById('status');s.textContent=t;setTimeout(function(){if(s.textContent===t)s.textContent=''},3000)}
+document.getElementById('copy').addEventListener('click',function(){
+  var t=table('\t');
+  try{navigator.clipboard.writeText(t).then(function(){say('Copied '+lastRows.length+' rules. Paste into Excel or your change request.')},function(){fallback(t)})}catch(e){fallback(t)}
+});
+function fallback(t){var ta=document.createElement('textarea');ta.value=t;ta.setAttribute('readonly','');ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();var ok=false;try{ok=document.execCommand('copy')}catch(e){}document.body.removeChild(ta);say(ok?'Copied.':'Copy was blocked. Use Download CSV instead.')}
+document.getElementById('csv').addEventListener('click',function(){
+  try{var b=new Blob(['﻿'+table(',')],{type:'text/csv;charset=utf-8'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='azure-migrate-firewall-rules.csv';document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},500);say('CSV downloaded.')}catch(e){say('Download is not available here. Use Copy for Excel.')}
+});
+document.getElementById('f').addEventListener('input',render);
+document.getElementById('f').addEventListener('change',render);
+render();
+})();
+</script>
+</body>
+</html>
