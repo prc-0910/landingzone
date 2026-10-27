@@ -94,7 +94,7 @@ summary{cursor:pointer;color:var(--accent);font-weight:600}
 .chart{border:1px solid var(--line);border-radius:4px;padding:14px;min-width:0}
 .chart h3{margin:0 0 10px}
 .bars{display:grid;gap:7px}
-.bar{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) 42px;gap:10px;align-items:center;font-size:.82rem}
+.bar{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) auto;gap:10px;align-items:center;font-size:.82rem}
 .bar .l{font-family:var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bar .t{height:10px;background:var(--track);border-radius:2px;overflow:hidden}
 .bar .t i{display:block;height:100%;background:var(--bar)}
@@ -107,7 +107,7 @@ tbody tr:last-child td{border-bottom:0}
 th{font:500 .72rem var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.06em;background:var(--paper);white-space:nowrap}
 td.m{font-family:var(--mono);font-size:.8rem;overflow-wrap:anywhere}
 td.num{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
-.t-find{min-width:880px} .t-sa{min-width:980px} .t-waste{min-width:760px}
+.t-find{min-width:880px} .t-sa{min-width:1120px} .t-waste{min-width:760px}
 .sev{display:inline-block;font:500 .72rem var(--mono);padding:2px 7px;border-radius:3px;border:1px solid currentColor;white-space:nowrap}
 .sev.high{color:var(--high)} .sev.med{color:var(--med)} .sev.low{color:var(--low)} .sev.ok{color:var(--ok)}
 .chk{font:500 .78rem var(--mono);white-space:nowrap}
@@ -137,7 +137,7 @@ footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;
   <div class="wrap">
     <div class="eyebrow">Free tool · Azure Resource Graph</div>
     <h1>Azure inventory report</h1>
-    <p class="lede">Run three read-only Resource Graph queries, upload the results and get an inventory overview, a security check of every storage account and a list of resources you're paying for but not using.</p>
+    <p class="lede">Run three read-only Resource Graph queries and an optional capacity script, upload the results and get an inventory overview, a security and capacity check of every storage account and a list of resources you're paying for but not using.</p>
     <div class="badges"><span>Read-only queries</span><span>No Azure sign-in on this site</span><span>Report builds in your browser</span></div>
   </div>
 </section>
@@ -177,7 +177,9 @@ footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;
     <div class="row"><button class="btn ghost" type="button" id="copy-f">Copy findings for Excel</button><button class="btn ghost" type="button" id="dl">Download full report (CSV)</button></div>
 
     <h3>Storage accounts</h3>
-    <div class="scroll"><table class="t-sa"><thead><tr><th>Account</th><th>SKU / kind</th><th>HTTPS only</th><th>Min TLS</th><th>Anonymous blob access</th><th>Network access</th><th>Private endpoints</th><th>Shared key</th></tr></thead><tbody id="sa"></tbody></table></div>
+    <div class="scroll"><table class="t-sa"><thead><tr><th>Account</th><th>SKU / kind</th><th>Used capacity</th><th>HTTPS only</th><th>Min TLS</th><th>Anonymous blob access</th><th>Network access</th><th>Private endpoints</th><th>Shared key</th></tr></thead><tbody id="sa"></tbody></table></div>
+    <p class="hint" id="cap-hint">Run script 4 and upload storage-capacity.csv to add used capacity, blob and file share sizes.</p>
+    <div class="row"><button class="btn ghost" type="button" id="copy-s">Copy storage table for Excel</button></div>
 
     <h3>Unused and wasted resources</h3>
     <div class="scroll"><table class="t-waste"><thead><tr><th>Type</th><th>Resource</th><th>Resource group</th><th>Location</th><th>Detail</th></tr></thead><tbody id="waste"></tbody></table></div>
@@ -205,20 +207,23 @@ var Q=[
  {id:'sa',n:'2',t:'Storage accounts',d:'Security and network settings for every storage account.',q:
 "resources\n| where type =~ 'microsoft.storage/storageaccounts'\n| project name, resourceGroup, location, subscriptionId,\n    sku = tostring(sku.name), kind,\n    accessTier = tostring(properties.accessTier),\n    httpsOnly = tostring(properties.supportsHttpsTrafficOnly),\n    minTls = tostring(properties.minimumTlsVersion),\n    blobPublicAccess = tostring(properties.allowBlobPublicAccess),\n    sharedKeyAccess = tostring(properties.allowSharedKeyAccess),\n    publicNetworkAccess = tostring(properties.publicNetworkAccess),\n    defaultAction = tostring(properties.networkAcls.defaultAction),\n    privateEndpoints = coalesce(array_length(properties.privateEndpointConnections), 0), id"},
  {id:'rg',n:'3',t:'Resource groups',d:'Every resource group with its resource count, to find empty ones.',q:
-"resourcecontainers\n| where type =~ 'microsoft.resources/subscriptions/resourcegroups'\n| project rgKey = tolower(id), rgName = name, subscriptionId, location\n| join kind=leftouter (resources\n    | extend rgKey = tolower(strcat('/subscriptions/', subscriptionId, '/resourceGroups/', resourceGroup))\n    | summarize resourceCount = count() by rgKey) on rgKey\n| project rgName, subscriptionId, location, resourceCount = coalesce(resourceCount, 0)"}
+"resourcecontainers\n| where type =~ 'microsoft.resources/subscriptions/resourcegroups'\n| project rgKey = tolower(id), rgName = name, subscriptionId, location\n| join kind=leftouter (resources\n    | extend rgKey = tolower(strcat('/subscriptions/', subscriptionId, '/resourceGroups/', resourceGroup))\n    | summarize resourceCount = count() by rgKey) on rgKey\n| project rgName, subscriptionId, location, resourceCount = coalesce(resourceCount, 0)"},
+ {id:'cap',n:'4',kind:'script',t:'Storage capacity (optional)',d:'Used capacity, blob and file share size per storage account. Resource Graph has no capacity data, so this Cloud Shell script reads it from Azure Monitor metrics. It makes six metric calls per account, so allow a few seconds per account.',q:"# Storage capacity for every storage account you can read.\n# Run in Azure Cloud Shell (Bash). Reader access is enough.\naz config set extension.use_dynamic_install=yes_without_prompt --only-show-errors\nout=storage-capacity.csv\nlast='value[0].timeseries[0].data[?average!=`null`] | [-1].average'\nm() { az monitor metrics list --resource \"$1\" --metrics \"$2\" --interval 1h --offset 2d --aggregation Average --query \"$last\" -o tsv 2>/dev/null; }\necho \"id,name,usedCapacityBytes,blobCapacityBytes,blobCount,containerCount,fileCapacityBytes,fileShareCount\" > \"$out\"\nfor id in $(az graph query -q \"resources | where type =~ 'microsoft.storage/storageaccounts' | project id\" --first 1000 --query \"data[].id\" -o tsv); do\n  b=\"$id/blobServices/default\"; f=\"$id/fileServices/default\"\n  echo \"$id,${id##*/},$(m \"$id\" UsedCapacity),$(m \"$b\" BlobCapacity),$(m \"$b\" BlobCount),$(m \"$b\" ContainerCount),$(m \"$f\" FileCapacity),$(m \"$f\" FileShareCount)\" >> \"$out\"\n  echo \"Done: ${id##*/}\"\ndone\necho \"Saved $out. Download it from Cloud Shell: Manage files > Download.\""}
 ];
-var data={inv:null,sa:null,rg:null},isExample=false,fileNames={};
+var data={inv:null,sa:null,rg:null,cap:null},isExample=false,fileNames={};
 function $(id){return document.getElementById(id)}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function say(id,t,c){var e=$(id);e.textContent=t;e.className='msg '+(c||'')}
 function oneLine(q){return q.replace(/\s*\n\s*/g,' ')}
 
 $('queries').innerHTML=Q.map(function(q,i){
-  return '<div class="q"><h3><span>QUERY '+q.n+'</span>'+q.t+'</h3><p>'+q.d+'</p><pre id="q-'+q.id+'">'+esc(q.q)+'</pre>'+
-  '<div class="row"><button class="btn" type="button" data-copy="'+i+'">Copy query</button></div>'+
-  '<details><summary>Azure CLI instead</summary><pre>'+esc('az graph query -q "'+oneLine(q.q).replace(/"/g,'\\"')+'" --first 1000 -o json > '+q.id+'.json')+'</pre></details></div>'}).join('');
+  var sc=q.kind==='script';
+  return '<div class="q"><h3><span>'+(sc?'SCRIPT ':'QUERY ')+q.n+'</span>'+q.t+'</h3><p>'+q.d+'</p><pre id="q-'+q.id+'">'+esc(q.q)+'</pre>'+
+  '<div class="row"><button class="btn" type="button" data-copy="'+i+'">'+(sc?'Copy script':'Copy query')+'</button></div>'+
+  (sc?'<p>Open Cloud Shell from the Azure portal toolbar, choose Bash, paste the script and press Enter. Upload the storage-capacity.csv it creates.</p>':
+  '<details><summary>Azure CLI instead</summary><pre>'+esc('az graph query -q "'+oneLine(q.q).replace(/"/g,'\\"')+'" --first 1000 -o json > '+q.id+'.json')+'</pre></details>')+'</div>'}).join('');
 $('queries').addEventListener('click',function(e){var b=e.target.closest('[data-copy]');if(!b)return;var t=Q[+b.dataset.copy].q;
-  var done=function(){b.textContent='Copied';setTimeout(function(){b.textContent='Copy query'},1500)};
+  var lbl=b.textContent;var done=function(){b.textContent='Copied';setTimeout(function(){b.textContent=lbl},1500)};
   try{navigator.clipboard.writeText(t).then(done,function(){sel(b)})}catch(x){sel(b)}});
 function sel(b){var pre=b.closest('.q').querySelector('pre');var r=document.createRange();r.selectNodeContents(pre);var s=getSelection();s.removeAllRanges();s.addRange(r);b.textContent='Selected, press Ctrl+C'}
 
@@ -244,10 +249,17 @@ function parseAny(name,text){
 }
 function low(o){var n={};for(var k in o)n[k.toLowerCase()]=o[k];return n}
 function kindOf(rows){if(!rows.length)return null;var k=Object.keys(rows[0]).map(function(x){return x.toLowerCase()});
+  if(k.indexOf('usedcapacitybytes')>=0)return 'cap';
   if(k.indexOf('mintls')>=0||k.indexOf('blobpublicaccess')>=0)return 'sa';
   if(k.indexOf('resourcecount')>=0)return 'rg';
   if(k.indexOf('type')>=0&&k.indexOf('name')>=0)return 'inv';return null}
 function S(v){return v==null?'':String(v)}
+function num(v){v=S(v).trim();if(v===''||v.toLowerCase()==='none'||v.toLowerCase()==='null')return null;var n=+v;return isFinite(n)?n:null}
+function fmtB(b){if(b==null)return '—';var u=['B','KiB','MiB','GiB','TiB','PiB'],i=0;while(b>=1024&&i<u.length-1){b/=1024;i++}return (i===0?b:b.toFixed(b<10?2:b<100?1:0))+' '+u[i]}
+function fmtN(n){return n==null?'—':Math.round(n).toLocaleString('en-US')}
+function capFor(r){var c=data.cap;if(!c)return null;var id=S(r.id).toLowerCase(),nm=S(r.name).toLowerCase();
+  for(var i=0;i<c.length;i++){if(id&&S(c[i].id).toLowerCase()===id)return c[i]}
+  for(var j=0;j<c.length;j++){if(S(c[j].name).toLowerCase()===nm)return c[j]}return null}
 function bool(v){v=S(v).toLowerCase();return v==='true'?true:v==='false'?false:null}
 
 function addFile(name,text){
@@ -275,6 +287,8 @@ function analyse(){
     var open=pna!=='disabled'&&da!=='deny';
     if(open&&pe===0)f('med','Reachable from all networks',r,'Restrict to selected networks or disable public access and use a private endpoint.');
     if(sk!==false)f('low','Shared key (account key) access allowed',r,'Prefer Microsoft Entra ID authorisation and disable shared key access where apps allow it.');
+    var cp=capFor(r);if(cp){var used=num(cp.usedcapacitybytes),bc=num(cp.blobcount),cc=num(cp.containercount),fs=num(cp.filesharecount);
+      if(used!=null&&used<1048576&&!bc&&!cc&&!fs){W.push({type:'Empty storage account',r:r,detail:fmtB(used)+' used · no containers or file shares'});f('low','Storage account holds no data',r,'Confirm nothing writes to it, then delete it.')}}
   });
   // waste from inventory
   inv.forEach(function(r){var t=S(r.type).toLowerCase();
@@ -291,28 +305,34 @@ function analyse(){
   return {F:F,W:W,untag:untag.length,subName:subName};
 }
 
-function bars(title,map,limit){
+function bars(title,map,limit,fmt){
   var e=Object.keys(map).map(function(k){return [k,map[k]]}).sort(function(a,b){return b[1]-a[1]});
   var rest=e.slice(limit);e=e.slice(0,limit);if(rest.length)e.push(['Other ('+rest.length+')',rest.reduce(function(s,x){return s+x[1]},0)]);
   var max=Math.max.apply(null,e.map(function(x){return x[1]}).concat([1]));
-  return '<div class="chart"><h3>'+title+'</h3><div class="bars">'+(e.length?e.map(function(x){return '<div class="bar"><span class="l" title="'+esc(x[0])+'">'+esc(x[0])+'</span><span class="t"><i style="width:'+(x[1]/max*100).toFixed(1)+'%"></i></span><span class="v">'+x[1]+'</span></div>'}).join(''):'<p class="hint">Upload query 1.</p>')+'</div></div>';
+  return '<div class="chart"><h3>'+title+'</h3><div class="bars">'+(e.length?e.map(function(x){return '<div class="bar"><span class="l" title="'+esc(x[0])+'">'+esc(x[0])+'</span><span class="t"><i style="width:'+(x[1]/max*100).toFixed(1)+'%"></i></span><span class="v">'+(fmt?fmt(x[1]):x[1])+'</span></div>'}).join(''):'<p class="hint">Upload query 1.</p>')+'</div></div>';
 }
 var last={F:[],W:[]};
 function render(){
   var A=analyse();last=A;var inv=data.inv||[];
   var byType={},byLoc={},bySub={};inv.forEach(function(r){var t=nice(r.type);byType[t]=(byType[t]||0)+1;var l=S(r.location)||'global';byLoc[l]=(byLoc[l]||0)+1;var s=A.subName[S(r.subscriptionid)]||S(r.subscriptionid).slice(0,8)+'…';bySub[s]=(bySub[s]||0)+1});
   var c={high:0,med:0,low:0};A.F.forEach(function(f){c[f.sev]++});
-  $('kpis').innerHTML='<div class="kpi"><b>'+inv.length+'</b><span>resources</span></div><div class="kpi"><b>'+Object.keys(bySub).length+'</b><span>subscriptions</span></div><div class="kpi"><b>'+Object.keys(byLoc).length+'</b><span>regions</span></div><div class="kpi high"><b>'+c.high+'</b><span>high findings</span></div><div class="kpi med"><b>'+c.med+'</b><span>medium findings</span></div><div class="kpi low"><b>'+c.low+'</b><span>low findings</span></div><div class="kpi"><b>'+A.untag+'</b><span>resources with no tags</span></div>';
-  $('charts').innerHTML=bars('Resources by type',byType,8)+bars('Resources by region',byLoc,6)+bars('Resources by subscription',bySub,6);
+  var capTotal=null,capMap={};(data.cap||[]).forEach(function(r){var u=num(r.usedcapacitybytes);if(u!=null){capTotal=(capTotal||0)+u;capMap[S(r.name)]=u}});
+  $('kpis').innerHTML='<div class="kpi"><b>'+inv.length+'</b><span>resources</span></div><div class="kpi"><b>'+Object.keys(bySub).length+'</b><span>subscriptions</span></div><div class="kpi"><b>'+Object.keys(byLoc).length+'</b><span>regions</span></div><div class="kpi high"><b>'+c.high+'</b><span>high findings</span></div><div class="kpi med"><b>'+c.med+'</b><span>medium findings</span></div><div class="kpi low"><b>'+c.low+'</b><span>low findings</span></div><div class="kpi"><b>'+A.untag+'</b><span>resources with no tags</span></div>'+(capTotal!=null?'<div class="kpi"><b>'+fmtB(capTotal)+'</b><span>storage used</span></div>':'');
+  $('charts').innerHTML=bars('Resources by type',byType,8)+bars('Resources by region',byLoc,6)+bars('Resources by subscription',bySub,6)+(capTotal!=null?bars('Storage used by account',capMap,6,fmtB):'');
   renderFindings();
   var sa=data.sa||[];
+  var capCell=function(r){var cp=capFor(r);if(!cp)return '<td class="num">'+(data.cap?'Not in file':'—')+'</td>';
+    var parts=[];var bc=num(cp.blobcount),cc=num(cp.containercount),fc=num(cp.filecapacitybytes),fs=num(cp.filesharecount);
+    if(cc!=null||bc!=null)parts.push(fmtN(cc)+' containers · '+fmtN(bc)+' blobs');if((fc!=null&&fc>0)||fs)parts.push('Files '+fmtB(fc)+(fs?' · '+fmtN(fs)+' shares':''));
+    return '<td class="num"><b>'+fmtB(num(cp.usedcapacitybytes))+'</b>'+(num(cp.blobcapacitybytes)!=null?'<span class="sub">Blobs '+fmtB(num(cp.blobcapacitybytes))+'</span>':'')+parts.map(function(x){return '<span class="sub">'+esc(x)+'</span>'}).join('')+'</td>'};
   var ck=function(ok,t,warn){return '<span class="chk '+(ok?'pass':warn?'warn':'fail')+'">'+(ok?'✓ ':warn?'! ':'✗ ')+esc(t)+'</span>'};
   $('sa').innerHTML=sa.length?sa.map(function(r){var https=bool(r.httpsonly),tls=S(r.mintls),pub=bool(r.blobpublicaccess),sk=bool(r.sharedkeyaccess),pna=S(r.publicnetworkaccess).toLowerCase(),da=S(r.defaultaction).toLowerCase(),pe=+S(r.privateendpoints)||0;
     var net=pna==='disabled'?ck(true,'Public access disabled'):da==='deny'?ck(true,'Selected networks'):ck(pe>0,pe>0?'All networks + PE':'All networks',pe>0);
-    return '<tr><td class="m"><b>'+esc(r.name)+'</b><span class="sub">'+esc(S(r.resourcegroup))+' · '+esc(S(r.location))+'</span></td><td class="m">'+esc(S(r.sku))+'<span class="sub">'+esc(S(r.kind))+(r.accesstier?' · '+esc(r.accesstier):'')+'</span></td><td>'+ck(https!==false,https===false?'No':'Yes')+'</td><td>'+ck(tls==='TLS1_2'||tls==='TLS1_3',tls?tls.replace('TLS','').replace('_','.'):'Not set',!tls||tls==='TLS1_1')+'</td><td>'+ck(pub!==true,pub===true?'Allowed':'Disabled')+'</td><td>'+net+'</td><td class="num">'+pe+'</td><td>'+ck(sk===false,sk===false?'Disabled':'Allowed',true)+'</td></tr>'}).join(''):'<tr><td colspan="8" class="empty">Upload query 2 to check storage accounts.</td></tr>';
+    return '<tr><td class="m"><b>'+esc(r.name)+'</b><span class="sub">'+esc(S(r.resourcegroup))+' · '+esc(S(r.location))+'</span></td><td class="m">'+esc(S(r.sku))+'<span class="sub">'+esc(S(r.kind))+(r.accesstier?' · '+esc(r.accesstier):'')+'</span></td>'+capCell(r)+'<td>'+ck(https!==false,https===false?'No':'Yes')+'</td><td>'+ck(tls==='TLS1_2'||tls==='TLS1_3',tls?tls.replace('TLS','').replace('_','.'):'Not set',!tls||tls==='TLS1_1')+'</td><td>'+ck(pub!==true,pub===true?'Allowed':'Disabled')+'</td><td>'+net+'</td><td class="num">'+pe+'</td><td>'+ck(sk===false,sk===false?'Disabled':'Allowed',true)+'</td></tr>'}).join(''):'<tr><td colspan="9" class="empty">'+(data.cap?'Upload query 2 as well to see each account’s settings next to its capacity.':'Upload query 2 to check storage accounts.')+'</td></tr>';
+  $('cap-hint').hidden=!!data.cap;
   $('waste').innerHTML=A.W.length?A.W.map(function(w){return '<tr><td>'+esc(w.type)+'</td><td class="m">'+esc(S(w.r.name))+'</td><td class="m">'+esc(S(w.r.resourcegroup))+'</td><td class="m">'+esc(S(w.r.location))+'</td><td>'+esc(w.detail)+'</td></tr>'}).join(''):'<tr><td colspan="5" class="empty">'+(data.inv||data.rg?'Nothing unused found.':'Upload queries 1 and 3 to find unused resources.')+'</td></tr>';
   $('exflag').textContent=isExample?'EXAMPLE DATA':'';
-  $('loaded').innerHTML=Q.map(function(q){var d=data[q.id];return '<span class="file">Query '+q.n+': '+(d?'<b>'+d.length+' rows</b>':'not loaded')+'</span>'}).join('');
+  $('loaded').innerHTML=Q.map(function(q){var d=data[q.id];return '<span class="file">'+(q.kind==='script'?'Script ':'Query ')+q.n+': '+(d?'<b>'+d.length+' rows</b>':'not loaded')+'</span>'}).join('');
 }
 function renderFindings(){
   var show={high:$('f-high').checked,med:$('f-med').checked,low:$('f-low').checked};
@@ -326,20 +346,23 @@ function tsv(rows,sep){var q=function(x){x=String(x==null?'':x);return sep===','
 var L={high:'High',med:'Medium',low:'Low'};
 function fRows(){return [['Severity','Finding','Resource','Resource group','Subscription','Recommendation']].concat(last.F.map(function(f){return [L[f.sev],f.title,f.res,f.rg,f.sub,f.rec]}))}
 function wRows(){return [['Type','Resource','Resource group','Location','Detail']].concat(last.W.map(function(w){return [w.type,S(w.r.name),S(w.r.resourcegroup),S(w.r.location),w.detail]}))}
+function sRows(){return [['Account','Resource group','Location','SKU','Kind','Access tier','Used capacity (GiB)','Blob capacity (GiB)','Blob count','Container count','File capacity (GiB)','File shares','HTTPS only','Min TLS','Anonymous blob access','Public network access','Default action','Private endpoints','Shared key access']].concat((data.sa||[]).map(function(r){var cp=capFor(r)||{};var g=function(v){v=num(v);return v==null?'':(v/1073741824).toFixed(3)};
+  return [S(r.name),S(r.resourcegroup),S(r.location),S(r.sku),S(r.kind),S(r.accesstier),g(cp.usedcapacitybytes),g(cp.blobcapacitybytes),S(cp.blobcount),S(cp.containercount),g(cp.filecapacitybytes),S(cp.filesharecount),S(r.httpsonly),S(r.mintls),S(r.blobpublicaccess),S(r.publicnetworkaccess),S(r.defaultaction),S(r.privateendpoints),S(r.sharedkeyaccess)]}))}
 function copy(t,l){try{navigator.clipboard.writeText(t).then(function(){say('msg2','Copied '+l+'.','ok')},function(){fb(t,l)})}catch(e){fb(t,l)}}
 function fb(t,l){var ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();var ok=false;try{ok=document.execCommand('copy')}catch(e){}ta.remove();say('msg2',ok?'Copied '+l+'.':'Copy was blocked. Use the CSV download.',ok?'ok':'err')}
 $('copy-f').onclick=function(){copy(tsv(fRows(),'\t'),'findings')};
+$('copy-s').onclick=function(){copy(tsv(sRows(),'\t'),'storage accounts')};
 $('copy-w').onclick=function(){copy(tsv(wRows(),'\t'),'unused resources')};
-$('dl').onclick=function(){var t='FINDINGS\n'+tsv(fRows(),',')+'\n\nUNUSED RESOURCES\n'+tsv(wRows(),',');
+$('dl').onclick=function(){var t='FINDINGS\n'+tsv(fRows(),',')+'\n\nSTORAGE ACCOUNTS\n'+tsv(sRows(),',')+'\n\nUNUSED RESOURCES\n'+tsv(wRows(),',');
   try{var b=new Blob(['﻿'+t],{type:'text/csv;charset=utf-8'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='azure-inventory-report.csv';document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},500);say('msg2','CSV downloaded.','ok')}catch(e){say('msg2','Download is not available here. Use the copy buttons.','err')}};
 
 function handle(files){
-  if(isExample){data={inv:null,sa:null,rg:null};isExample=false}
+  if(isExample){data={inv:null,sa:null,rg:null,cap:null};isExample=false}
   var list=[].slice.call(files),done=0,msgs=[],errs=[];
   if(!list.length)return;
   list.forEach(function(f){
     if(f.size>60*1024*1024){errs.push(f.name+' is over 60 MB.');if(++done===list.length)fin();return}
-    var r=new FileReader();r.onload=function(){try{var res=addFile(f.name,String(r.result));msgs.push(f.name+' → query '+{inv:1,sa:2,rg:3}[res[0]]+' ('+res[1]+' rows)')}catch(e){errs.push(e.message)}if(++done===list.length)fin()};
+    var r=new FileReader();r.onload=function(){try{var res=addFile(f.name,String(r.result));msgs.push(f.name+' → '+(res[0]==='cap'?'script ':'query ')+{inv:1,sa:2,rg:3,cap:4}[res[0]]+' ('+res[1]+' rows)')}catch(e){errs.push(e.message)}if(++done===list.length)fin()};
     r.onerror=function(){errs.push('Could not read '+f.name);if(++done===list.length)fin()};r.readAsText(f)});
   function fin(){render();if(errs.length)say('msg',errs.join(' '),'err');else say('msg','Loaded '+msgs.join('; ')+'.','ok')}
 }
@@ -348,7 +371,7 @@ var dz=$('drop');
 ['dragenter','dragover'].forEach(function(ev){dz.addEventListener(ev,function(e){e.preventDefault();dz.classList.add('over')})});
 ['dragleave','drop'].forEach(function(ev){dz.addEventListener(ev,function(e){e.preventDefault();dz.classList.remove('over')})});
 dz.addEventListener('drop',function(e){if(e.dataTransfer&&e.dataTransfer.files)handle(e.dataTransfer.files)});
-$('clear').onclick=function(){data={inv:null,sa:null,rg:null};isExample=false;render();say('msg','Cleared.','ok')};
+$('clear').onclick=function(){data={inv:null,sa:null,rg:null,cap:null};isExample=false;render();say('msg','Cleared.','ok')};
 
 function sample(){
   var subs=[['11111111-aaaa-4bbb-8ccc-000000000001','sub-prod'],['22222222-aaaa-4bbb-8ccc-000000000002','sub-nonprod']];
@@ -367,10 +390,12 @@ function sample(){
   R('microsoft.web/serverfarms','asp-portal','rg-web-prod','centralindia',0,{sku:'P1v3'});R('microsoft.web/sites','app-portal','rg-web-prod','centralindia',0,{});
   var stg=[['stprodlogs01','rg-monitor',0,'Standard_GRS','true','TLS1_2','false','false','Enabled','Deny',0],['stwebassets01','rg-web-prod',0,'Standard_LRS','true','TLS1_2','true','','Enabled','Allow',0],['stbackupci01','rg-data-prod',0,'Standard_ZRS','true','TLS1_2','false','false','Disabled','Deny',1],['sttestdata01','rg-test',1,'Standard_LRS','false','TLS1_0','','','','Allow',0],['stdevopscache','rg-devops',1,'Standard_LRS','true','','false','','Enabled','Allow',0]];
   stg.forEach(function(s){R('microsoft.storage/storageaccounts',s[0],s[1],'centralindia',s[2],{sku:s[3],kind:'StorageV2'});sa.push({name:s[0],resourcegroup:s[1],location:'centralindia',subscriptionid:subs[s[2]][0],sku:s[3],kind:'StorageV2',accesstier:'Hot',httpsonly:s[4],mintls:s[5],blobpublicaccess:s[6],sharedkeyaccess:s[7],publicnetworkaccess:s[8],defaultaction:s[9],privateendpoints:String(s[10])})});
+  var GB=1073741824,cap=[['stprodlogs01',412*GB,410*GB,1843210,6,0,0],['stwebassets01',38.5*GB,38.5*GB,52310,3,0,0],['stbackupci01',2.6*1024*GB,2.6*1024*GB,9812,4,0,0],['sttestdata01',121*GB,4.2*GB,1200,2,116*GB,3],['stdevopscache',0.02*1048576,0,0,0,0,0]];
+  var capRows=cap.map(function(c){return {id:'',name:c[0],usedcapacitybytes:String(c[1]),blobcapacitybytes:String(c[2]),blobcount:String(c[3]),containercount:String(c[4]),filecapacitybytes:String(c[5]),filesharecount:String(c[6])}});
   var cnt={};inv.forEach(function(r){var k=r.subscriptionid+'|'+r.resourcegroup;cnt[k]=(cnt[k]||0)+1});
   Object.keys(cnt).forEach(function(k){var p=k.split('|');rg.push({rgname:p[1],subscriptionid:p[0],location:'centralindia',resourcecount:String(cnt[k])})});
   rg.push({rgname:'rg-poc-2024',subscriptionid:subs[1][0],location:'southindia',resourcecount:'0'});
-  data={inv:inv,sa:sa,rg:rg};isExample=true;render();say('msg','Example environment loaded. Upload your own results to replace it.','ok');
+  data={inv:inv,sa:sa,rg:rg,cap:capRows};isExample=true;render();say('msg','Example environment loaded. Upload your own results to replace it.','ok');
 }
 $('sample').onclick=sample;
 sample();
